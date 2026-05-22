@@ -124,13 +124,13 @@ async def update_account_cash(account_id: int, cash: float):
 
 async def create_position(account_id: int, symbol: str, market: str,
                           direction: str, qty: float, open_price: float,
-                          open_date: str) -> dict:
+                          open_date: str, multiplier: float = 1.0) -> dict:
     db = await get_db()
     cursor = await db.execute(
         """INSERT INTO positions
-           (account_id, symbol, market, direction, qty, open_price, open_date, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'open')""",
-        (account_id, symbol, market, direction, qty, open_price, open_date)
+           (account_id, symbol, market, direction, qty, multiplier, open_price, open_date, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')""",
+        (account_id, symbol, market, direction, qty, multiplier, open_price, open_date)
     )
     await db.commit()
     pos_id = cursor.lastrowid
