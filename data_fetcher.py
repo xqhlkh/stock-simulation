@@ -295,7 +295,7 @@ async def fetch_exchange_rate(from_currency: str, to_currency: str,
 
 # ─── 交易日历 ──────────────────────────────────────────────
 
-async def get_prev_trading_day(symbol: str, market: str, date: str) -> str | None:
+async def get_prev_trading_day(symbol: str, market: str, date: str) -> Optional[str]:
     """获取上一个交易日"""
     dates = await db.get_trading_dates(symbol, market)
     if not dates:
@@ -307,7 +307,7 @@ async def get_prev_trading_day(symbol: str, market: str, date: str) -> str | Non
     return None
 
 
-async def get_next_trading_day(symbol: str, market: str, date: str) -> str | None:
+async def get_next_trading_day(symbol: str, market: str, date: str) -> Optional[str]:
     """获取下一个交易日"""
     dates = await db.get_trading_dates(symbol, market)
     if not dates:
