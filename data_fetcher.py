@@ -5,6 +5,7 @@ AKShare 数据获取层
 import akshare as ak
 import pandas as pd
 from datetime import datetime, timedelta
+from typing import Optional
 import database as db
 import traceback
 
@@ -136,7 +137,7 @@ async def fetch_history(symbol: str, market: str,
 
 # ─── 实时行情 ──────────────────────────────────────────────
 
-async def fetch_realtime_quote(symbol: str, market: str) -> dict | None:
+async def fetch_realtime_quote(symbol: str, market: str) -> Optional[dict]:
     """获取实时/最新行情"""
     try:
         ak_symbol = _symbol_akshare(symbol, market)
@@ -216,7 +217,7 @@ async def fetch_realtime_quote(symbol: str, market: str) -> dict | None:
 
 # ─── 单日价格（回测用） ────────────────────────────────────
 
-async def fetch_price_on_date(symbol: str, market: str, date: str) -> dict | None:
+async def fetch_price_on_date(symbol: str, market: str, date: str) -> Optional[dict]:
     """获取指定日期的价格，优先缓存"""
     date_fmt = date.replace("-", "")
 
