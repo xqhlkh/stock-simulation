@@ -4,7 +4,7 @@
 import aiosqlite
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "stock_sim.db")
 
