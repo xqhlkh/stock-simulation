@@ -131,7 +131,7 @@ async def open_position(account_id: int, symbol: str, market: str,
     await db.update_account_cash(account_id, new_cash)
 
     position = await db.create_position(
-        account_id, symbol, market, direction, qty, price, date
+        account_id, symbol, market, direction, qty, price, date, multiplier
     )
 
     # 7. 保存当日快照
@@ -185,12 +185,13 @@ async def close_position(position_id: int, date: str,
     elif position["market"] == "US":
         cny_rate = await df.fetch_exchange_rate("USD", "CNY", date)
 
-    # 6. 计算盈亏
+    # 6. 计算盈亏（考虑倍数）
+    lev = position.get("multiplier", 1) or 1
     if position["direction"] == "long":
-        pnl = (price - position["open_price"]) * position["qty"] * cny_rate
-        released = position["open_price"] * position["qty"] * cny_rate
+        pnl = (price - position["open_price"]) * position["qty"] * cny_rate * lev
+        released = position["open_price"] * position["qty"] * cny_rate * lev
     else:  # short
-        pnl = (position["open_price"] - price) * position["qty"] * cny_rate
+        pnl = (position["open_price"] - price) * position["qty"] * cny_rate * lev
         released = position["open_price"] * position["qty"] * cny_rate * MARGIN_RATIO
 
     # 7. 更新持仓状态
