@@ -224,10 +224,11 @@ async def calculate_position_pnl(position: dict, current_price: float,
     elif position["market"] == "US":
         cny_rate = await df.fetch_exchange_rate("USD", "CNY", date)
 
+    lev = position.get("multiplier", 1) or 1
     if position["direction"] == "long":
-        pnl = (current_price - position["open_price"]) * position["qty"] * cny_rate
+        pnl = (current_price - position["open_price"]) * position["qty"] * cny_rate * lev
     else:
-        pnl = (position["open_price"] - current_price) * position["qty"] * cny_rate
+        pnl = (position["open_price"] - current_price) * position["qty"] * cny_rate * lev
 
     return pnl
 
@@ -241,7 +242,8 @@ async def calculate_position_value(position: dict, current_price: float,
     elif position["market"] == "US":
         cny_rate = await df.fetch_exchange_rate("USD", "CNY", date)
 
-    return current_price * position["qty"] * cny_rate
+    lev = position.get("multiplier", 1) or 1
+    return current_price * position["qty"] * cny_rate * lev
 
 
 # ─── 账户汇总 ──────────────────────────────────────────────
