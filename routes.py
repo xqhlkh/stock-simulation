@@ -122,7 +122,7 @@ async def trade_open(req: OpenPositionRequest):
 
     result = await trading.open_position(
         req.account_id, req.symbol, req.market,
-        req.direction, req.qty, req.date, req.price
+        req.direction, req.qty, req.date, req.price, req.multiplier
     )
 
     if not result["success"]:
