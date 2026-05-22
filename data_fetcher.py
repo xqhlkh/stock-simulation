@@ -5,7 +5,7 @@ AKShare 数据获取层
 import akshare as ak
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 import database as db
 import traceback
 
@@ -28,7 +28,7 @@ def _symbol_akshare(symbol: str, market: str) -> str:
     return symbol
 
 
-def _df_to_records(df: pd.DataFrame) -> list[dict]:
+def _df_to_records(df: pd.DataFrame) -> List[dict]:
     """DataFrame 转换为字典列表"""
     if df is None or df.empty:
         return []
@@ -48,7 +48,7 @@ def _df_to_records(df: pd.DataFrame) -> list[dict]:
 # ─── 历史行情 ──────────────────────────────────────────────
 
 async def fetch_history(symbol: str, market: str,
-                        start: str, end: str) -> list[dict]:
+                        start: str, end: str) -> List[dict]:
     """
     获取历史日K数据
     start/end 格式: "20240101" 或 "2024-01-01"
