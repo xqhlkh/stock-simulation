@@ -7,12 +7,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root {
             --bg: #000000;
             --surface: rgba(28, 28, 30, 0.72);
             --surface-solid: #1c1c1e;
-            --surface-hover: rgba(44, 44, 46, 0.8);
             --border: rgba(255, 255, 255, 0.08);
             --border-active: rgba(255, 255, 255, 0.15);
             --text: #f5f5f7;
@@ -25,1347 +23,523 @@
             --red: #ff453a;
             --red-dim: rgba(255, 69, 58, 0.12);
             --yellow: #ffd60a;
-            --blur: 40px;
             --radius: 16px;
             --radius-sm: 10px;
             --radius-xs: 6px;
             --shadow: 0 2px 20px rgba(0,0,0,0.4), 0 0 0 0.5px var(--border);
-            --transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --tr: 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
         }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        body::before { content:''; position:fixed; top:-50%; left:-50%; width:200%; height:200%; background: radial-gradient(ellipse at 20% 20%,rgba(41,151,255,.08) 0%,transparent 50%), radial-gradient(ellipse at 80% 80%,rgba(48,209,88,.05) 0%,transparent 50%); animation: bgF 30s ease-in-out infinite; z-index:-1; pointer-events:none; }
+        @keyframes bgF { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-2%,1%)} }
+        .glass { background: var(--surface); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border: .5px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); transition: border-color var(--tr); }
+        .glass:hover { border-color: var(--border-active); }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            overflow-x: hidden;
-        }
+        /* nav */
+        .navbar { position:sticky; top:0; z-index:100; background:rgba(0,0,0,.72); backdrop-filter:saturate(180%) blur(20px); border-bottom:.5px solid var(--border); padding:0 24px; height:52px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+        .logo { font-size:17px; font-weight:600; letter-spacing:-.01em; white-space:nowrap; }
+        .logo span { background:linear-gradient(135deg,var(--accent),#5856d6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .cselect { position:relative; }
+        .cselect select { appearance:none; background:rgba(255,255,255,.06); color:var(--text); border:.5px solid var(--border); border-radius:var(--radius-xs); padding:5px 28px 5px 10px; font-size:13px; font-family:inherit; cursor:pointer; transition:all var(--tr); }
+        .cselect select:hover { background:rgba(255,255,255,.1); }
+        .cselect select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(41,151,255,.2); }
+        .cselect::after { content:''; position:absolute; right:10px; top:50%; transform:translateY(-50%); border-left:4px solid transparent; border-right:4px solid transparent; border-top:5px solid var(--text-secondary); pointer-events:none; }
 
-        /* ─── 动态背景 ─── */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background:
-                radial-gradient(ellipse at 20% 20%, rgba(41, 151, 255, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(48, 209, 88, 0.05) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(255, 69, 58, 0.03) 0%, transparent 50%);
-            animation: bgFloat 30s ease-in-out infinite;
-            z-index: -1;
-            pointer-events: none;
-        }
-        @keyframes bgFloat {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(-2%, -1%) rotate(1deg); }
-            66% { transform: translate(1%, 2%) rotate(-1deg); }
-        }
+        /* buttons */
+        .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; background:var(--accent); color:#fff; border:none; border-radius:980px; padding:6px 16px; font-size:13px; font-weight:500; font-family:inherit; cursor:pointer; transition:all var(--tr); white-space:nowrap; }
+        .btn:hover { background:var(--accent-hover); transform:scale(1.02); }
+        .btn:active { transform:scale(.98); }
+        .btn-sm { padding:4px 12px; font-size:12px; }
+        .btn-ghost { background:rgba(255,255,255,.06); color:var(--text); border:.5px solid var(--border); }
+        .btn-ghost:hover { background:rgba(255,255,255,.12); }
+        .btn-danger { background:var(--red); }
+        .btn-danger:hover { background:#ff6961; }
 
-        /* ─── 磨砂玻璃面板 ─── */
-        .glass {
-            background: var(--surface);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            transition: border-color var(--transition), box-shadow var(--transition);
-        }
-        .glass:hover {
-            border-color: var(--border-active);
-        }
+        /* mode tabs */
+        .mode-tabs { display:flex; background:rgba(255,255,255,.04); border-radius:980px; padding:2px; margin-left:auto; border:.5px solid var(--border); }
+        .mode-tab { padding:5px 16px; border-radius:980px; cursor:pointer; font-size:13px; font-weight:500; color:var(--text-secondary); transition:all var(--tr); }
+        .mode-tab:hover { color:var(--text); }
+        .mode-tab.active { background:rgba(255,255,255,.12); color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,.3); }
 
-        /* ─── 顶部导航 ─── */
-        .navbar {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: rgba(0, 0, 0, 0.72);
-            backdrop-filter: saturate(180%) blur(20px);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            border-bottom: 0.5px solid var(--border);
-            padding: 0 24px;
-            height: 52px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        .logo {
-            font-size: 17px;
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            color: var(--text);
-            white-space: nowrap;
-        }
-        .logo span {
-            background: linear-gradient(135deg, var(--accent), #5856d6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+        /* backtest ctrl */
+        .backtest-ctrl { display:none; align-items:center; gap:6px; }
+        .backtest-ctrl.visible { display:flex; }
+        .backtest-ctrl .date-disp { font-size:13px; font-weight:600; min-width:100px; text-align:center; color:var(--yellow); font-variant-numeric:tabular-nums; }
+        .backtest-ctrl input[type="date"] { background:rgba(255,255,255,.06); color:var(--text); border:.5px solid var(--border); border-radius:var(--radius-xs); padding:4px 8px; font-size:12px; font-family:inherit; }
+        .backtest-ctrl input[type="date"]:focus { outline:none; border-color:var(--accent); }
+        .backtest-ctrl input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1); }
 
-        /* ─── 自定义选择框 ─── */
-        .custom-select {
-            position: relative;
-        }
-        .custom-select select {
-            appearance: none;
-            background: rgba(255,255,255,0.06);
-            color: var(--text);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius-xs);
-            padding: 5px 28px 5px 10px;
-            font-size: 13px;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all var(--transition);
-        }
-        .custom-select select:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: var(--border-active);
-        }
-        .custom-select select:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.2);
-        }
-        .custom-select::after {
-            content: '';
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 5px solid var(--text-secondary);
-            pointer-events: none;
-        }
+        /* layout */
+        .main { display:grid; grid-template-columns:380px 1fr; gap:16px; padding:16px 24px 24px; max-width:1600px; margin:0 auto; }
+        @media(max-width:960px){ .main{grid-template-columns:1fr;} }
+        .panel { padding:20px; }
+        .panel-hd { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+        .panel-tl { font-size:13px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.06em; }
 
-        /* ─── 按钮系统 ─── */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 980px;
-            padding: 6px 16px;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all var(--transition);
-            white-space: nowrap;
-            letter-spacing: -0.01em;
-        }
-        .btn:hover { background: var(--accent-hover); transform: scale(1.02); }
-        .btn:active { transform: scale(0.98); }
-        .btn-sm { padding: 4px 12px; font-size: 12px; }
-        .btn-ghost {
-            background: rgba(255,255,255,0.06);
-            color: var(--text);
-            border: 0.5px solid var(--border);
-        }
-        .btn-ghost:hover { background: rgba(255,255,255,0.12); }
-        .btn-danger { background: var(--red); }
-        .btn-danger:hover { background: #ff6961; }
+        /* quote */
+        .q-search { display:flex; gap:8px; margin-bottom:16px; }
+        .q-search input { flex:1; background:rgba(255,255,255,.04); color:var(--text); border:.5px solid var(--border); border-radius:var(--radius-sm); padding:10px 14px; font-size:15px; font-family:inherit; transition:all var(--tr); }
+        .q-search input::placeholder { color:var(--text-tertiary); }
+        .q-search input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(41,151,255,.15); background:rgba(255,255,255,.06); }
+        .q-search select { appearance:none; background:rgba(255,255,255,.04); color:var(--text); border:.5px solid var(--border); border-radius:var(--radius-sm); padding:10px 28px 10px 12px; font-size:14px; font-family:inherit; cursor:pointer; }
+        .q-search select:focus { outline:none; border-color:var(--accent); }
 
-        /* ─── 模式切换 ─── */
-        .mode-tabs {
-            display: flex;
-            background: rgba(255,255,255,0.04);
-            border-radius: 980px;
-            padding: 2px;
-            margin-left: auto;
-            border: 0.5px solid var(--border);
-        }
-        .mode-tab {
-            padding: 5px 16px;
-            border-radius: 980px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            transition: all var(--transition);
-            letter-spacing: -0.01em;
-        }
-        .mode-tab:hover { color: var(--text); }
-        .mode-tab.active {
-            background: rgba(255,255,255,0.12);
-            color: var(--text);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
+        .q-result { margin-bottom:20px; padding:16px; background:rgba(255,255,255,.02); border-radius:var(--radius-sm); border:.5px solid var(--border); animation:fadeIn .3s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+        .q-name { font-size:13px; color:var(--text-secondary); font-weight:500; margin-bottom:4px; }
+        .q-price { font-size:36px; font-weight:700; letter-spacing:-.03em; line-height:1.1; margin-bottom:4px; font-variant-numeric:tabular-nums; }
+        .q-change { font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
+        .q-meta { display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; font-size:12px; color:var(--text-tertiary); }
+        .q-meta .mi { display:flex; flex-direction:column; gap:2px; }
+        .q-meta .ml { font-size:10px; text-transform:uppercase; letter-spacing:.05em; }
+        .q-meta .mv { font-weight:600; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+        .up { color:var(--red); } .down { color:var(--green); } .flat { color:var(--text-secondary); }
 
-        /* ─── 回测控制 ─── */
-        .backtest-ctrl {
-            display: none;
-            align-items: center;
-            gap: 6px;
-            padding: 0 8px;
-        }
-        .backtest-ctrl.visible { display: flex; }
-        .backtest-ctrl .date-display {
-            font-size: 13px;
-            font-weight: 600;
-            min-width: 100px;
-            text-align: center;
-            color: var(--yellow);
-            font-variant-numeric: tabular-nums;
-        }
-        .backtest-ctrl input[type="date"] {
-            background: rgba(255,255,255,0.06);
-            color: var(--text);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius-xs);
-            padding: 4px 8px;
-            font-size: 12px;
-            font-family: inherit;
-        }
-        .backtest-ctrl input[type="date"]:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        .backtest-ctrl input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-        }
+        /* trade form */
+        .fr { display:flex; gap:10px; margin-bottom:10px; align-items:center; }
+        .fl { font-size:13px; color:var(--text-secondary); min-width:50px; font-weight:500; }
+        .fi { flex:1; background:rgba(255,255,255,.04); color:var(--text); border:.5px solid var(--border); border-radius:var(--radius-xs); padding:8px 12px; font-size:14px; font-family:inherit; transition:all var(--tr); }
+        .fi:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(41,151,255,.15); }
+        .fi::-webkit-calendar-picker-indicator { filter:invert(1); }
+        .dir-group { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+        .dir-btn { padding:10px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:rgba(255,255,255,.02); color:var(--text-secondary); font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; text-align:center; transition:all var(--tr); }
+        .dir-btn:hover { background:rgba(255,255,255,.04); }
+        .dir-btn.long.active { border-color:var(--red); color:var(--red); background:var(--red-dim); }
+        .dir-btn.short.active { border-color:var(--green); color:var(--green); background:var(--green-dim); }
+        .tp { font-size:13px; color:var(--text-secondary); padding:10px 12px; background:rgba(255,255,255,.02); border-radius:var(--radius-xs); border:.5px solid var(--border); line-height:1.6; margin:12px 0; }
+        .tp b { color:var(--text); font-weight:600; }
+        .submit-btn { width:100%; padding:12px; font-size:15px; font-weight:600; border-radius:var(--radius-sm); margin-top:4px; }
 
-        /* ─── 主体布局 ─── */
-        .main {
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 16px;
-            padding: 16px 24px 24px;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-        @media (max-width: 960px) {
-            .main { grid-template-columns: 1fr; }
-        }
+        /* table */
+        .pt { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
+        .pt th { text-align:left; padding:10px 10px; color:var(--text-tertiary); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:.05em; border-bottom:.5px solid var(--border); }
+        .pt td { padding:12px 10px; border-bottom:.5px solid rgba(255,255,255,.03); font-variant-numeric:tabular-nums; transition:background var(--tr); }
+        .pt tbody tr:hover td { background:rgba(255,255,255,.02); }
+        .pt tbody tr:last-child td { border-bottom:none; }
 
-        .panel {
-            padding: 20px;
-        }
-        .panel-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-        .panel-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
+        /* summary */
+        .sg { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+        @media(max-width:1100px){ .sg{grid-template-columns:repeat(2,1fr);} }
+        .sc { background:rgba(255,255,255,.02); border:.5px solid var(--border); border-radius:var(--radius-sm); padding:14px; text-align:center; transition:all var(--tr); }
+        .sc:hover { background:rgba(255,255,255,.04); border-color:var(--border-active); }
+        .sl { font-size:11px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:.05em; font-weight:500; margin-bottom:6px; }
+        .sv { font-size:20px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
 
-        /* ─── 行情面板 ─── */
-        .quote-search {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-        .quote-search input {
-            flex: 1;
-            background: rgba(255,255,255,0.04);
-            color: var(--text);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 10px 14px;
-            font-size: 15px;
-            font-family: inherit;
-            font-weight: 400;
-            letter-spacing: -0.01em;
-            transition: all var(--transition);
-        }
-        .quote-search input::placeholder { color: var(--text-tertiary); }
-        .quote-search input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.15);
-            background: rgba(255,255,255,0.06);
-        }
-        .quote-search select {
-            appearance: none;
-            background: rgba(255,255,255,0.04);
-            color: var(--text);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 10px 28px 10px 12px;
-            font-size: 14px;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all var(--transition);
-        }
-        .quote-search select:focus { outline: none; border-color: var(--accent); }
+        /* chart */
+        .cw { height:220px; position:relative; margin-top:8px; }
 
-        /* ─── 行情结果 ─── */
-        .quote-result {
-            margin-bottom: 20px;
-            padding: 16px;
-            background: rgba(255,255,255,0.02);
-            border-radius: var(--radius-sm);
-            border: 0.5px solid var(--border);
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .quote-name {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-        .quote-price {
-            font-size: 36px;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            line-height: 1.1;
-            margin-bottom: 4px;
-            font-variant-numeric: tabular-nums;
-        }
-        .quote-change {
-            font-size: 15px;
-            font-weight: 600;
-            font-variant-numeric: tabular-nums;
-        }
-        .quote-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            margin-top: 12px;
-            font-size: 12px;
-            color: var(--text-tertiary);
-        }
-        .quote-meta .meta-item {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .quote-meta .meta-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-tertiary);
-        }
-        .quote-meta .meta-value {
-            font-weight: 600;
-            color: var(--text-secondary);
-            font-variant-numeric: tabular-nums;
-        }
-        .up { color: var(--red); }
-        .down { color: var(--green); }
-        .flat { color: var(--text-secondary); }
+        /* modal */
+        .mo { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(10px); z-index:1000; align-items:center; justify-content:center; animation:fadeIn .2s ease; }
+        .mo.show { display:flex; }
+        .modal { background:var(--surface-solid); border:.5px solid var(--border); border-radius:var(--radius); box-shadow:0 20px 60px rgba(0,0,0,.5); padding:28px; width:420px; max-width:90vw; animation:mIn .3s cubic-bezier(.25,.46,.45,.94); }
+        @keyframes mIn { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+        .modal h3 { font-size:20px; font-weight:600; letter-spacing:-.02em; margin-bottom:20px; }
+        .modal .fg { margin-bottom:14px; }
+        .modal label { display:block; font-size:13px; color:var(--text-secondary); margin-bottom:6px; font-weight:500; }
+        .modal input,.modal select { width:100%; background:rgba(255,255,255,.04); color:var(--text); border:.5px solid var(--border); border-radius:var(--radius-xs); padding:10px 14px; font-size:15px; font-family:inherit; transition:all var(--tr); }
+        .modal input:focus,.modal select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(41,151,255,.15); }
+        .modal input::-webkit-calendar-picker-indicator { filter:invert(1); }
+        .modal .ma { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
 
-        /* ─── 开仓表单 ─── */
-        .trade-section {
-            margin-top: 16px;
-        }
-        .form-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        .form-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-            min-width: 50px;
-            font-weight: 500;
-        }
-        .form-input {
-            flex: 1;
-            background: rgba(255,255,255,0.04);
-            color: var(--text);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius-xs);
-            padding: 8px 12px;
-            font-size: 14px;
-            font-family: inherit;
-            transition: all var(--transition);
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.15);
-        }
+        /* toast */
+        .toast { position:fixed; top:16px; right:16px; background:var(--surface-solid); backdrop-filter:blur(20px); border:.5px solid var(--border); border-radius:var(--radius-sm); padding:12px 20px; z-index:2000; font-size:14px; font-weight:500; box-shadow:0 8px 32px rgba(0,0,0,.4); animation:tIn .4s cubic-bezier(.25,.46,.45,.94); }
+        @keyframes tIn { from{transform:translateY(-10px);opacity:0} to{transform:translateY(0);opacity:1} }
+        .toast.success { border-left:3px solid var(--green); }
+        .toast.error { border-left:3px solid var(--red); }
 
-        /* ─── 多空方向按钮 ─── */
-        .direction-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .dir-btn {
-            padding: 10px;
-            border-radius: var(--radius-sm);
-            border: 1.5px solid var(--border);
-            background: rgba(255,255,255,0.02);
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            text-align: center;
-            transition: all var(--transition);
-            letter-spacing: -0.01em;
-        }
-        .dir-btn:hover {
-            background: rgba(255,255,255,0.04);
-            border-color: var(--border-active);
-        }
-        .dir-btn.long.active {
-            border-color: var(--red);
-            color: var(--red);
-            background: var(--red-dim);
-            box-shadow: 0 0 20px rgba(255, 69, 58, 0.08);
-        }
-        .dir-btn.short.active {
-            border-color: var(--green);
-            color: var(--green);
-            background: var(--green-dim);
-            box-shadow: 0 0 20px rgba(48, 209, 88, 0.08);
-        }
+        .empty-state { text-align:center; padding:80px 20px; grid-column:1/-1; }
+        .empty-state .icon { font-size:48px; margin-bottom:16px; opacity:.6; }
+        .empty-state h2 { font-size:24px; font-weight:600; letter-spacing:-.02em; margin-bottom:8px; }
+        .empty-state p { font-size:15px; color:var(--text-secondary); line-height:1.5; }
 
-        /* ─── 交易预览 ─── */
-        .trade-preview {
-            font-size: 13px;
-            color: var(--text-secondary);
-            padding: 10px 12px;
-            background: rgba(255,255,255,0.02);
-            border-radius: var(--radius-xs);
-            border: 0.5px solid var(--border);
-            line-height: 1.6;
-            margin: 12px 0;
-        }
-        .trade-preview b { color: var(--text); font-weight: 600; }
-
-        .submit-btn {
-            width: 100%;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: 600;
-            border-radius: var(--radius-sm);
-            margin-top: 4px;
-        }
-
-        /* ─── 持仓表格 ─── */
-        .positions-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            font-size: 13px;
-        }
-        .positions-table th {
-            text-align: left;
-            padding: 10px 10px;
-            color: var(--text-tertiary);
-            font-weight: 500;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 0.5px solid var(--border);
-        }
-        .positions-table td {
-            padding: 12px 10px;
-            border-bottom: 0.5px solid rgba(255,255,255,0.03);
-            font-variant-numeric: tabular-nums;
-            transition: background var(--transition);
-        }
-        .positions-table tbody tr {
-            transition: background var(--transition);
-        }
-        .positions-table tbody tr:hover td {
-            background: rgba(255,255,255,0.02);
-        }
-        .positions-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        .pos-symbol { font-weight: 600; letter-spacing: -0.01em; }
-
-        /* ─── 汇总卡片 ─── */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-        @media (max-width: 1100px) {
-            .summary-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        .summary-card {
-            background: rgba(255,255,255,0.02);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 14px;
-            text-align: center;
-            transition: all var(--transition);
-        }
-        .summary-card:hover {
-            background: rgba(255,255,255,0.04);
-            border-color: var(--border-active);
-        }
-        .summary-label {
-            font-size: 11px;
-            color: var(--text-tertiary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 500;
-            margin-bottom: 6px;
-        }
-        .summary-value {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            font-variant-numeric: tabular-nums;
-        }
-
-        /* ─── 图表 ─── */
-        .chart-wrap {
-            height: 220px;
-            position: relative;
-            margin-top: 8px;
-        }
-
-        /* ─── 模态框 ─── */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.2s ease;
-        }
-        .modal-overlay.show { display: flex; }
-        .modal {
-            background: var(--surface-solid);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 0.5px var(--border);
-            padding: 28px;
-            width: 420px;
-            max-width: 90vw;
-            animation: modalIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: scale(0.95) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .modal h3 {
-            font-size: 20px;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            margin-bottom: 20px;
-        }
-        .modal .form-group { margin-bottom: 14px; }
-        .modal label {
-            display: block;
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-            font-weight: 500;
-        }
-        .modal input, .modal select {
-            width: 100%;
-            background: rgba(255,255,255,0.04);
-            color: var(--text);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius-xs);
-            padding: 10px 14px;
-            font-size: 15px;
-            font-family: inherit;
-            transition: all var(--transition);
-        }
-        .modal input:focus, .modal select:focus {
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.15);
-        }
-        .modal .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        /* ─── Toast ─── */
-        .toast {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            background: var(--surface-solid);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 0.5px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 12px 20px;
-            z-index: 2000;
-            font-size: 14px;
-            font-weight: 500;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            animation: toastIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        @keyframes toastIn {
-            from { transform: translateY(-10px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .toast.success { border-left: 3px solid var(--green); }
-        .toast.error { border-left: 3px solid var(--red); }
-
-        /* ─── 空状态 ─── */
-        .empty-state {
-            text-align: center;
-            padding: 80px 20px;
-            grid-column: 1 / -1;
-        }
-        .empty-state .icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.6;
-        }
-        .empty-state h2 {
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            margin-bottom: 8px;
-        }
-        .empty-state p {
-            font-size: 15px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        /* ─── 徽章 ─── */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 8px;
-            border-radius: 980px;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.01em;
-        }
-        .badge-long { background: var(--red-dim); color: var(--red); }
-        .badge-short { background: var(--green-dim); color: var(--green); }
-
-        /* ─── 空持仓 ─── */
-        .empty-positions {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-tertiary);
-            font-size: 14px;
-        }
-        .empty-positions .icon { font-size: 32px; margin-bottom: 8px; opacity: 0.4; }
-
-        /* ─── 滚动条美化 ─── */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-
-        /* ─── 选中文字颜色 ─── */
-        ::selection {
-            background: rgba(41, 151, 255, 0.3);
-            color: var(--text);
-        }
-
-        /* ─── 平仓按钮 ─── */
-        .close-btn {
-            background: rgba(255, 69, 58, 0.1);
-            color: var(--red);
-            border: 0.5px solid rgba(255, 69, 58, 0.2);
-            border-radius: 980px;
-            padding: 4px 12px;
-            font-size: 12px;
-            font-weight: 500;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all var(--transition);
-        }
-        .close-btn:hover {
-            background: rgba(255, 69, 58, 0.2);
-            border-color: rgba(255, 69, 58, 0.4);
-        }
+        .badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:980px; font-size:11px; font-weight:600; }
+        .badge-long { background:var(--red-dim); color:var(--red); }
+        .badge-short { background:var(--green-dim); color:var(--green); }
+        .empty-pos { text-align:center; padding:40px 20px; color:var(--text-tertiary); font-size:14px; }
+        .close-btn { background:rgba(255,69,58,.1); color:var(--red); border:.5px solid rgba(255,69,58,.2); border-radius:980px; padding:4px 12px; font-size:12px; font-weight:500; font-family:inherit; cursor:pointer; transition:all var(--tr); }
+        .close-btn:hover { background:rgba(255,69,58,.2); border-color:rgba(255,69,58,.4); }
+        ::-webkit-scrollbar { width:6px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1); border-radius:3px; }
+        ::selection { background:rgba(41,151,255,.3); }
     </style>
 </head>
 <body>
 
-<!-- ═══ 导航栏 ═══ -->
 <nav class="navbar">
     <div class="logo"><span>StockSim</span></div>
-
-    <div class="custom-select">
-        <select id="accountSelect">
-            <option value="">选择账户</option>
-        </select>
-    </div>
-
-    <button class="btn btn-sm btn-ghost" onclick="showCreateAccount()">+ 新建</button>
-    <button class="btn btn-sm btn-ghost" style="color:var(--red);border-color:rgba(255,69,58,0.2);" onclick="deleteCurrentAccount()">删除</button>
-
+    <div class="cselect"><select id="accountSelect"><option value="">选择账户</option></select></div>
+    <button class="btn btn-sm btn-ghost" onclick="showModal('createModal')">+ 新建</button>
+    <button class="btn btn-sm btn-ghost" style="color:var(--red);border-color:rgba(255,69,58,.2);" onclick="deleteAccount()">删除</button>
     <div class="mode-tabs">
         <div class="mode-tab active" data-mode="live" onclick="switchMode('live')">实时</div>
         <div class="mode-tab" data-mode="backtest" onclick="switchMode('backtest')">回测</div>
     </div>
-
     <div class="backtest-ctrl" id="backtestCtrl">
-        <button class="btn btn-sm btn-ghost" onclick="backtestPrev()">&#8249;</button>
-        <span class="date-display" id="backtestDate">--</span>
-        <button class="btn btn-sm btn-ghost" onclick="backtestNext()">&#8250;</button>
-        <input type="date" id="backtestJump" onchange="backtestJumpToDate(this.value)">
+        <button class="btn btn-sm btn-ghost" onclick="btPrev()">&#8249;</button>
+        <span class="date-disp" id="btDate">--</span>
+        <button class="btn btn-sm btn-ghost" onclick="btNext()">&#8250;</button>
+        <input type="date" id="btJump" onchange="btJumpTo(this.value)">
     </div>
 </nav>
 
-<!-- ═══ 无账户提示 ═══ -->
+<!-- empty -->
 <div class="main" id="mainArea">
     <div class="empty-state" id="noAccount">
         <div class="icon">&#x1F4C8;</div>
         <h2>开始模拟交易</h2>
         <p>创建一个交易账户，体验 A股、港股、美股的模拟交易</p>
-        <button class="btn" style="margin-top:20px;padding:10px 28px;font-size:15px;" onclick="showCreateAccount()">创建账户</button>
+        <button class="btn" style="margin-top:20px;padding:10px 28px;font-size:15px;" onclick="showModal('createModal')">创建账户</button>
     </div>
 </div>
 
-<!-- ═══ 主面板 ═══ -->
-<div class="main" id="dashboardArea" style="display:none;">
-    <!-- 左栏 -->
+<!-- dashboard -->
+<div class="main" id="dashArea" style="display:none;">
     <div style="display:flex;flex-direction:column;gap:16px;">
-        <!-- 行情查询 -->
+        <!-- quote -->
         <div class="glass panel">
-            <div class="panel-header">
-                <span class="panel-title">行情</span>
-            </div>
-            <div class="quote-search">
-                <input type="text" id="quoteSymbol" placeholder="输入代码，如 000001" onkeydown="if(event.key==='Enter')queryQuote()">
-                <div class="custom-select">
-                    <select id="quoteMarket">
-                        <option value="A">A股</option>
-                        <option value="HK">港股</option>
-                        <option value="US">美股</option>
-                    </select>
-                </div>
+            <div class="panel-hd"><span class="panel-tl">行情</span></div>
+            <div class="q-search">
+                <input type="text" id="qSymbol" placeholder="输入代码，如 000001" onkeydown="if(event.key==='Enter')queryQuote()">
+                <div class="cselect"><select id="qMarket"><option value="A">A股</option><option value="HK">港股</option><option value="US">美股</option></select></div>
                 <button class="btn" onclick="queryQuote()">查询</button>
             </div>
-            <div id="quoteResult" class="quote-result" style="display:none;">
-                <div class="quote-name" id="qName"></div>
-                <div class="quote-price" id="qPrice"></div>
-                <div class="quote-change" id="qChange"></div>
-                <div class="quote-meta" id="qMeta"></div>
+            <div id="qResult" class="q-result" style="display:none;">
+                <div class="q-name" id="qName"></div>
+                <div class="q-price" id="qPrice"></div>
+                <div class="q-change" id="qChange"></div>
+                <div class="q-meta" id="qMeta"></div>
             </div>
         </div>
-
-        <!-- 开仓 -->
+        <!-- trade -->
         <div class="glass panel">
-            <div class="panel-header">
-                <span class="panel-title">开仓</span>
-            </div>
-            <div class="trade-section">
-                <div class="form-row">
-                    <span class="form-label">方向</span>
-                    <div class="direction-group" style="flex:1;">
-                        <div class="dir-btn long active" id="dirLong" onclick="setDirection('long')">做多</div>
-                        <div class="dir-btn short" id="dirShort" onclick="setDirection('short')">做空</div>
-                    </div>
+            <div class="panel-hd"><span class="panel-tl">开仓</span></div>
+            <div class="fr">
+                <span class="fl">方向</span>
+                <div class="dir-group" style="flex:1;">
+                    <div class="dir-btn long active" id="dirLong" onclick="setDir('long')">做多</div>
+                    <div class="dir-btn short" id="dirShort" onclick="setDir('short')">做空</div>
                 </div>
-                <div class="form-row">
-                    <span class="form-label">数量</span>
-                    <input type="number" class="form-input" id="tradeQty" min="1" step="1" placeholder="输入股数" oninput="updateTradePreview()">
-                </div>
-                <div class="trade-preview" id="tradePreview">查询行情后可开仓</div>
-                <button class="btn submit-btn" onclick="confirmOpen()">确认开仓</button>
             </div>
+            <div class="fr">
+                <span class="fl">数量</span>
+                <input type="number" class="fi" id="tQty" min="1" step="1" placeholder="股数" oninput="updatePreview()">
+            </div>
+            <div class="fr">
+                <span class="fl">倍数</span>
+                <input type="number" class="fi" id="tLever" min="1" max="10" step="0.5" value="1" placeholder="1" oninput="updatePreview()" style="max-width:80px;">
+                <span style="font-size:12px;color:var(--text-tertiary);">x</span>
+            </div>
+            <div class="fr" id="buyDateRow" style="display:none;">
+                <span class="fl">买入日</span>
+                <input type="date" class="fi" id="tBuyDate">
+            </div>
+            <div class="tp" id="tradePreview">查询行情后可开仓</div>
+            <button class="btn submit-btn" onclick="doOpen()">确认开仓</button>
         </div>
     </div>
-
-    <!-- 右栏 -->
     <div style="display:flex;flex-direction:column;gap:16px;">
-        <!-- 持仓列表 -->
+        <!-- positions -->
         <div class="glass panel" style="flex:1;">
-            <div class="panel-header">
-                <span class="panel-title">持仓</span>
-            </div>
+            <div class="panel-hd"><span class="panel-tl">持仓</span></div>
             <div style="overflow-x:auto;">
-                <table class="positions-table" id="positionsTable">
-                    <thead>
-                        <tr>
-                            <th>代码</th><th>市场</th><th>方向</th><th>日期</th>
-                            <th>开仓价</th><th>现价</th><th>盈亏</th><th>%</th><th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="positionsBody"></tbody>
-                </table>
+                <table class="pt"><thead><tr>
+                    <th>代码</th><th>市场</th><th>方向</th><th>倍数</th><th>日期</th>
+                    <th>开仓价</th><th>现价</th><th>盈亏</th><th>%</th><th></th>
+                </tr></thead><tbody id="posBody"></tbody></table>
             </div>
-            <div id="noPositions" class="empty-positions">
-                <div class="icon">&#x1F4CB;</div>
-                暂无持仓
+            <div id="noPos" class="empty-pos">暂无持仓</div>
+        </div>
+        <!-- summary -->
+        <div class="glass panel">
+            <div class="panel-hd"><span class="panel-tl">账户</span></div>
+            <div class="sg">
+                <div class="sc"><div class="sl">总资产</div><div class="sv" id="sTotal">--</div></div>
+                <div class="sc"><div class="sl">可用资金</div><div class="sv" id="sCash">--</div></div>
+                <div class="sc"><div class="sl">持仓市值</div><div class="sv" id="sPos">--</div></div>
+                <div class="sc"><div class="sl">总盈亏</div><div class="sv" id="sPnl">--</div></div>
             </div>
         </div>
-
-        <!-- 账户汇总 -->
+        <!-- chart -->
         <div class="glass panel">
-            <div class="panel-header">
-                <span class="panel-title">账户</span>
-            </div>
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="summary-label">总资产</div>
-                    <div class="summary-value" id="totalAssets">--</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">可用资金</div>
-                    <div class="summary-value" id="cashValue">--</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">持仓市值</div>
-                    <div class="summary-value" id="posValue">--</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-label">总盈亏</div>
-                    <div class="summary-value" id="totalPnl">--</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 资产曲线 -->
-        <div class="glass panel">
-            <div class="panel-header">
-                <span class="panel-title">资产曲线</span>
-            </div>
-            <div class="chart-wrap">
-                <canvas id="assetChart"></canvas>
-            </div>
+            <div class="panel-hd"><span class="panel-tl">资产曲线</span></div>
+            <div class="cw"><canvas id="assetChart"></canvas></div>
         </div>
     </div>
 </div>
 
-<!-- ═══ 新建账户 ═══ -->
-<div class="modal-overlay" id="createModal">
+<!-- create modal -->
+<div class="mo" id="createModal">
     <div class="modal">
         <h3>新建账户</h3>
-        <div class="form-group">
-            <label>账户名称</label>
-            <input type="text" id="newName" placeholder="给账户起个名字">
-        </div>
-        <div class="form-group">
-            <label>模式</label>
-            <select id="newMode">
-                <option value="live">实时模拟盘</option>
-                <option value="backtest">历史回测</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>初始资金 (CNY)</label>
-            <input type="number" id="newCash" value="100000" min="1000" step="1000">
-        </div>
-        <div class="modal-actions">
+        <div class="fg"><label>账户名称</label><input type="text" id="newName" placeholder="给账户起个名字"></div>
+        <div class="fg"><label>模式</label><select id="newMode"><option value="live">实时模拟盘</option><option value="backtest">历史回测</option></select></div>
+        <div class="fg"><label>初始资金 (CNY)</label><input type="number" id="newCash" value="100000" min="1000" step="1000"></div>
+        <div class="ma">
             <button class="btn btn-ghost" onclick="closeModal('createModal')">取消</button>
             <button class="btn" onclick="createAccount()">创建</button>
         </div>
     </div>
 </div>
 
-<!-- ═══ 平仓确认 ═══ -->
-<div class="modal-overlay" id="closeModal">
+<!-- close modal -->
+<div class="mo" id="closeModal">
     <div class="modal">
         <h3>确认平仓</h3>
-        <div id="closeInfo" style="margin-bottom:20px;font-size:14px;line-height:1.8;color:var(--text-secondary);"></div>
-        <div class="modal-actions">
+        <div id="closeInfo" style="margin-bottom:16px;font-size:14px;line-height:1.8;color:var(--text-secondary);"></div>
+        <div class="fg" id="sellDateRow">
+            <label>卖出日期（可选，不填为当前日期）</label>
+            <input type="date" id="sellDate">
+        </div>
+        <div class="ma">
             <button class="btn btn-ghost" onclick="closeModal('closeModal')">取消</button>
-            <button class="btn btn-danger" id="confirmCloseBtn" onclick="executeClose()">确认平仓</button>
+            <button class="btn btn-danger" onclick="doClose()">确认平仓</button>
         </div>
     </div>
 </div>
 
-<!-- ═══ Toast ═══ -->
 <div id="toast" class="toast" style="display:none;"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-//  全局状态
-// ═══════════════════════════════════════════════════════════
 const API = '';
-let state = {
-    accounts: [],
-    accountId: null,
-    mode: 'live',
-    backtestDate: null,
-    currentQuote: null,
-    direction: 'long',
-    closePositionId: null,
-    chart: null,
-    refreshTimer: null,
-};
+let S = { accounts:[], id:null, mode:'live', btDate:null, quote:null, dir:'long', closeId:null, chart:null, timer:null, rates:{} };
 
-// ═══════════════════════════════════════════════════════════
-//  工具函数
-// ═══════════════════════════════════════════════════════════
-async function api(path, opts = {}) {
-    const res = await fetch(API + path, {
-        headers: { 'Content-Type': 'application/json' },
-        ...opts,
-    });
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || res.statusText);
+// ── utils ──
+async function api(p, o={}) {
+    const r = await fetch(API+p, { headers:{'Content-Type':'application/json'}, ...o });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail||r.statusText); }
+    return r.json();
+}
+function fmt(n,d=2){ if(n==null||isNaN(n))return'--'; return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function pc(v){ return v>0?'up':v<0?'down':'flat'; }
+function toast(m,t='success'){ const el=document.getElementById('toast'); el.textContent=m; el.className='toast '+t; el.style.display='block'; clearTimeout(el._t); el._t=setTimeout(()=>{el.style.display='none'},3000); }
+function showEl(id,v){ document.getElementById(id).style.display=v?'':'none'; }
+function showModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+// ── exchange rates ──
+async function getRate(from, to, date) {
+    const key = `${from}_${to}_${date||'now'}`;
+    if (S.rates[key]) return S.rates[key];
+    try {
+        const d = await api(`/exchange_rate?from_currency=${from}&to_currency=${to}${date?'&date='+date:''}`);
+        S.rates[key] = d.rate;
+        return d.rate;
+    } catch(e) {
+        const defaults = {'USD_CNY':7.25,'HKD_CNY':0.93};
+        return defaults[`${from}_${to}`] || 1;
     }
-    return res.json();
 }
 
-function fmt(n, decimals = 2) {
-    if (n == null || isNaN(n)) return '--';
-    return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-
-function pnlClass(val) {
-    if (val > 0) return 'up';
-    if (val < 0) return 'down';
-    return 'flat';
-}
-
-function showToast(msg, type = 'success') {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = `toast ${type}`;
-    t.style.display = 'block';
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => { t.style.display = 'none'; }, 3000);
-}
-
-function showEl(id, show) { document.getElementById(id).style.display = show ? '' : 'none'; }
-function showModal(id) { document.getElementById(id).classList.add('show'); }
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-
-// ═══════════════════════════════════════════════════════════
-//  账户管理
-// ═══════════════════════════════════════════════════════════
+// ── accounts ──
 async function loadAccounts() {
-    const data = await api('/accounts');
-    state.accounts = data.accounts;
+    const d = await api('/accounts');
+    S.accounts = d.accounts;
     const sel = document.getElementById('accountSelect');
     sel.innerHTML = '<option value="">选择账户</option>';
-    data.accounts.forEach(a => {
-        const opt = document.createElement('option');
-        opt.value = a.id;
-        const modeTag = a.mode === 'live' ? ' 实时' : ' 回测';
-        opt.textContent = `${a.name}${modeTag}  ¥${fmt(a.init_cash, 0)}`;
-        sel.appendChild(opt);
+    d.accounts.forEach(a => {
+        const o = document.createElement('option');
+        o.value = a.id;
+        o.textContent = `${a.name} ${a.mode==='live'?'实时':'回测'} ¥${fmt(a.init_cash,0)}`;
+        sel.appendChild(o);
     });
-    if (state.accountId && data.accounts.find(a => a.id === state.accountId)) {
-        sel.value = state.accountId;
-    } else if (data.accounts.length > 0) {
-        sel.value = data.accounts[0].id;
-        state.accountId = data.accounts[0].id;
-    }
-    onAccountChange();
+    if (S.id && d.accounts.find(a=>a.id===S.id)) sel.value = S.id;
+    else if (d.accounts.length) { sel.value = d.accounts[0].id; S.id = d.accounts[0].id; }
+    onAccChange();
 }
-
-function showCreateAccount() { showModal('createModal'); }
-
 async function createAccount() {
-    const name = document.getElementById('newName').value.trim();
-    const mode = document.getElementById('newMode').value;
-    const cash = parseFloat(document.getElementById('newCash').value);
-    if (!name) return showToast('请输入账户名称', 'error');
-    if (cash < 1000) return showToast('初始资金至少 1,000', 'error');
-    await api('/accounts', { method: 'POST', body: JSON.stringify({ name, mode, init_cash: cash }) });
-    closeModal('createModal');
-    showToast('账户已创建');
-    await loadAccounts();
+    const n=document.getElementById('newName').value.trim();
+    const m=document.getElementById('newMode').value;
+    const c=parseFloat(document.getElementById('newCash').value);
+    if(!n) return toast('请输入名称','error');
+    if(c<1000) return toast('资金至少1000','error');
+    await api('/accounts',{method:'POST',body:JSON.stringify({name:n,mode:m,init_cash:c})});
+    closeModal('createModal'); toast('账户已创建'); loadAccounts();
 }
-
-async function deleteCurrentAccount() {
-    if (!state.accountId) return showToast('请先选择账户', 'error');
-    if (!confirm('确定删除该账户及其所有数据？')) return;
-    await api(`/accounts/${state.accountId}`, { method: 'DELETE' });
-    showToast('账户已删除');
-    state.accountId = null;
-    await loadAccounts();
+async function deleteAccount() {
+    if(!S.id) return toast('请先选择','error');
+    if(!confirm('确定删除？')) return;
+    await api(`/accounts/${S.id}`,{method:'DELETE'});
+    toast('已删除'); S.id=null; loadAccounts();
 }
-
-document.getElementById('accountSelect').addEventListener('change', function() {
-    state.accountId = this.value ? parseInt(this.value) : null;
-    onAccountChange();
-});
-
-async function onAccountChange() {
-    const has = !!state.accountId;
-    showEl('noAccount', !has);
-    showEl('dashboardArea', has);
-    document.getElementById('mainArea').style.display = has ? 'none' : '';
-    if (has) {
-        const acc = state.accounts.find(a => a.id === state.accountId);
-        if (acc) {
-            state.mode = acc.mode;
-            updateModeTabs();
-        }
-        if (state.mode === 'backtest' && !state.backtestDate) {
-            state.backtestDate = new Date().toISOString().slice(0, 10);
-        }
-        await refreshAll();
-        startAutoRefresh();
+document.getElementById('accountSelect').addEventListener('change',function(){ S.id=this.value?parseInt(this.value):null; onAccChange(); });
+async function onAccChange() {
+    const has=!!S.id;
+    showEl('noAccount',!has); showEl('dashArea',has);
+    document.getElementById('mainArea').style.display=has?'none':'';
+    if(has){
+        const a=S.accounts.find(x=>x.id===S.id);
+        if(a){ S.mode=a.mode; updateMode(); }
+        if(S.mode==='backtest'&&!S.btDate) S.btDate=new Date().toISOString().slice(0,10);
+        document.getElementById('buyDateRow').style.display=S.mode==='backtest'?'flex':'none';
+        if(S.mode==='backtest') document.getElementById('tBuyDate').value=S.btDate||'';
+        refresh(); startAuto();
     }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  模式切换
-// ═══════════════════════════════════════════════════════════
-function switchMode(mode) {
-    state.mode = mode;
-    updateModeTabs();
-    if (mode === 'backtest' && !state.backtestDate) {
-        state.backtestDate = new Date().toISOString().slice(0, 10);
-    }
-    refreshAll();
+// ── mode ──
+function switchMode(m){ S.mode=m; updateMode(); if(m==='backtest'&&!S.btDate) S.btDate=new Date().toISOString().slice(0,10); document.getElementById('buyDateRow').style.display=m==='backtest'?'flex':'none'; if(m==='backtest') document.getElementById('tBuyDate').value=S.btDate||''; refresh(); }
+function updateMode(){
+    document.querySelectorAll('.mode-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===S.mode));
+    document.getElementById('backtestCtrl').classList.toggle('visible',S.mode==='backtest');
+    document.getElementById('btDate').textContent=S.btDate||'--';
+    document.getElementById('btJump').value=S.btDate||'';
 }
 
-function updateModeTabs() {
-    document.querySelectorAll('.mode-tab').forEach(t => {
-        t.classList.toggle('active', t.dataset.mode === state.mode);
-    });
-    document.getElementById('backtestCtrl').classList.toggle('visible', state.mode === 'backtest');
-    document.getElementById('backtestDate').textContent = state.backtestDate || '--';
-    document.getElementById('backtestJump').value = state.backtestDate || '';
-}
+// ── backtest nav ──
+async function btPrev(){ const s=document.getElementById('qSymbol').value||'000001'; const m=document.getElementById('qMarket').value; try{const d=await api(`/calendar/prev?date=${S.btDate}&market=${m}&symbol=${s}`);if(d.date){S.btDate=d.date;updateMode();refresh();}}catch(e){toast(e.message,'error');} }
+async function btNext(){ const s=document.getElementById('qSymbol').value||'000001'; const m=document.getElementById('qMarket').value; try{const d=await api(`/calendar/next?date=${S.btDate}&market=${m}&symbol=${s}`);if(d.date){S.btDate=d.date;updateMode();refresh();}}catch(e){toast(e.message,'error');} }
+function btJumpTo(v){ if(v){S.btDate=v;updateMode();refresh();} }
 
-// ═══════════════════════════════════════════════════════════
-//  回测导航
-// ═══════════════════════════════════════════════════════════
-async function backtestPrev() {
-    const symbol = document.getElementById('quoteSymbol').value || '000001';
-    const market = document.getElementById('quoteMarket').value;
-    try {
-        const data = await api(`/calendar/prev?date=${state.backtestDate}&market=${market}&symbol=${symbol}`);
-        if (data.date) { state.backtestDate = data.date; updateModeTabs(); refreshAll(); }
-    } catch (e) { showToast(e.message, 'error'); }
-}
-
-async function backtestNext() {
-    const symbol = document.getElementById('quoteSymbol').value || '000001';
-    const market = document.getElementById('quoteMarket').value;
-    try {
-        const data = await api(`/calendar/next?date=${state.backtestDate}&market=${market}&symbol=${symbol}`);
-        if (data.date) { state.backtestDate = data.date; updateModeTabs(); refreshAll(); }
-    } catch (e) { showToast(e.message, 'error'); }
-}
-
-function backtestJumpToDate(date) {
-    if (date) { state.backtestDate = date; updateModeTabs(); refreshAll(); }
-}
-
-// ═══════════════════════════════════════════════════════════
-//  行情查询
-// ═══════════════════════════════════════════════════════════
+// ── quote ──
 async function queryQuote() {
-    const symbol = document.getElementById('quoteSymbol').value.trim();
-    const market = document.getElementById('quoteMarket').value;
-    if (!symbol) return showToast('请输入股票代码', 'error');
-
+    const sym=document.getElementById('qSymbol').value.trim();
+    const mkt=document.getElementById('qMarket').value;
+    if(!sym) return toast('请输入代码','error');
     try {
         let url;
-        if (state.mode === 'backtest' && state.backtestDate) {
-            url = `/quote?symbol=${symbol}&market=${market}&date=${state.backtestDate}`;
-        } else {
-            url = `/quote?symbol=${symbol}&market=${market}`;
-        }
-        const q = await api(url);
-        state.currentQuote = { ...q, symbol, market };
+        if(S.mode==='backtest'&&S.btDate) url=`/quote?symbol=${sym}&market=${mkt}&date=${S.btDate}`;
+        else url=`/quote?symbol=${sym}&market=${mkt}`;
+        const q=await api(url);
+        S.quote={...q,symbol:sym,market:mkt};
+        showEl('qResult',true);
+        document.getElementById('qName').textContent=q.name||sym;
+        const p=q.price||q.close;
+        document.getElementById('qPrice').textContent='¥'+fmt(p);
+        document.getElementById('qPrice').className='q-price '+pc(q.change_pct||0);
+        const chg=q.change_pct||0; const chgA=q.change_amount||0;
+        document.getElementById('qChange').textContent=`${chg>=0?'+':''}${fmt(chg)}%  ${chgA>=0?'+':''}${fmt(chgA)}`;
+        document.getElementById('qChange').className='q-change '+pc(chg);
+        let meta='';
+        if(q.open) meta+=`<div class="mi"><span class="ml">开盘</span><span class="mv">${fmt(q.open)}</span></div>`;
+        if(q.high) meta+=`<div class="mi"><span class="ml">最高</span><span class="mv">${fmt(q.high)}</span></div>`;
+        if(q.low) meta+=`<div class="mi"><span class="ml">最低</span><span class="mv">${fmt(q.low)}</span></div>`;
+        if(q.prev_close) meta+=`<div class="mi"><span class="ml">昨收</span><span class="mv">${fmt(q.prev_close)}</span></div>`;
+        if(S.mode==='backtest') meta+=`<div class="mi"><span class="ml">模式</span><span class="mv" style="color:var(--yellow)">回测 ${S.btDate}</span></div>`;
+        document.getElementById('qMeta').innerHTML=meta;
+        updatePreview();
+    } catch(e) { toast('查询失败: '+e.message,'error'); }
+}
 
-        showEl('quoteResult', true);
-        document.getElementById('qName').textContent = q.name || symbol;
-        const price = q.price || q.close;
-        document.getElementById('qPrice').textContent = `¥${fmt(price)}`;
-        document.getElementById('qPrice').className = `quote-price ${pnlClass(q.change_pct || 0)}`;
+function setDir(d){ S.dir=d; document.getElementById('dirLong').classList.toggle('active',d==='long'); document.getElementById('dirShort').classList.toggle('active',d==='short'); updatePreview(); }
 
-        const chg = q.change_pct || 0;
-        const chgAmt = q.change_amount || 0;
-        document.getElementById('qChange').textContent = `${chg >= 0 ? '+' : ''}${fmt(chg)}%  ${chgAmt >= 0 ? '+' : ''}${fmt(chgAmt)}`;
-        document.getElementById('qChange').className = `quote-change ${pnlClass(chg)}`;
+async function updatePreview() {
+    const qty=parseFloat(document.getElementById('tQty').value)||0;
+    const lever=parseFloat(document.getElementById('tLever').value)||1;
+    const q=S.quote;
+    const price=q?(q.price||q.close):0;
+    const mkt=q?q.market:'A';
+    const el=document.getElementById('tradePreview');
+    if(!q||!qty){ el.innerHTML='查询行情后可开仓'; return; }
+    let rate=1;
+    if(mkt==='HK') rate=await getRate('HKD','CNY',S.mode==='backtest'?S.btDate:null);
+    else if(mkt==='US') rate=await getRate('USD','CNY',S.mode==='backtest'?S.btDate:null);
+    const total=price*qty*rate*lever;
+    const dirT=S.dir==='long'?'做多':'做空';
+    el.innerHTML=`${dirT} <b>${q.symbol}</b> &times; ${qty}股 &times; ${lever}倍<br>单价 ¥${fmt(price)} &nbsp; 所需资金 <b style="color:var(--accent)">¥${fmt(total)}</b>${mkt!=='A'?` <span style="color:var(--text-tertiary);font-size:11px">汇率${fmt(rate,2)}</span>`:''}`;
+}
 
-        let metaHtml = '';
-        if (q.open) metaHtml += `<div class="meta-item"><span class="meta-label">开盘</span><span class="meta-value">${fmt(q.open)}</span></div>`;
-        if (q.high) metaHtml += `<div class="meta-item"><span class="meta-label">最高</span><span class="meta-value">${fmt(q.high)}</span></div>`;
-        if (q.low) metaHtml += `<div class="meta-item"><span class="meta-label">最低</span><span class="meta-value">${fmt(q.low)}</span></div>`;
-        if (q.prev_close) metaHtml += `<div class="meta-item"><span class="meta-label">昨收</span><span class="meta-value">${fmt(q.prev_close)}</span></div>`;
-        if (state.mode === 'backtest') metaHtml += `<div class="meta-item"><span class="meta-label">模式</span><span class="meta-value" style="color:var(--yellow)">回测 ${state.backtestDate}</span></div>`;
-        document.getElementById('qMeta').innerHTML = metaHtml;
-
-        updateTradePreview();
-    } catch (e) {
-        showToast('查询失败: ' + e.message, 'error');
+// ── open ──
+async function doOpen() {
+    if(!S.id) return toast('请先选择账户','error');
+    if(!S.quote) return toast('请先查询行情','error');
+    const qty=parseFloat(document.getElementById('tQty').value);
+    const lever=parseFloat(document.getElementById('tLever').value)||1;
+    if(!qty||qty<=0) return toast('请输入数量','error');
+    const body={ account_id:S.id, symbol:S.quote.symbol, market:S.quote.market, direction:S.dir, qty:qty, multiplier:lever };
+    if(S.mode==='backtest'){
+        const buyDate=document.getElementById('tBuyDate').value;
+        body.date=buyDate||S.btDate;
+        body.price=S.quote.close||S.quote.price;
     }
-}
-
-function setDirection(dir) {
-    state.direction = dir;
-    document.getElementById('dirLong').classList.toggle('active', dir === 'long');
-    document.getElementById('dirShort').classList.toggle('active', dir === 'short');
-    updateTradePreview();
-}
-
-function updateTradePreview() {
-    const qty = parseFloat(document.getElementById('tradeQty').value) || 0;
-    const q = state.currentQuote;
-    const price = q ? (q.price || q.close) : 0;
-    const market = q ? q.market : 'A';
-    const el = document.getElementById('tradePreview');
-
-    if (!q || !qty) { el.innerHTML = '查询行情后可开仓'; return; }
-
-    let rate = 1;
-    if (market === 'HK') rate = 0.93;
-    else if (market === 'US') rate = 7.25;
-
-    const totalCost = price * qty * rate;
-    const dirText = state.direction === 'long' ? '做多' : '做空';
-
-    el.innerHTML = `
-        ${dirText} <b>${q.symbol}</b> &times; ${qty} 股 &nbsp;@&nbsp; ¥${fmt(price)}<br>
-        所需资金 <b style="color:var(--accent)">¥${fmt(totalCost)}</b>
-        ${market !== 'A' ? `<span style="color:var(--text-tertiary);font-size:11px;">汇率 ${fmt(rate, 2)}</span>` : ''}
-    `;
-}
-
-// ═══════════════════════════════════════════════════════════
-//  开仓
-// ═══════════════════════════════════════════════════════════
-async function confirmOpen() {
-    if (!state.accountId) return showToast('请先选择账户', 'error');
-    if (!state.currentQuote) return showToast('请先查询行情', 'error');
-    const qty = parseFloat(document.getElementById('tradeQty').value);
-    if (!qty || qty <= 0) return showToast('请输入有效数量', 'error');
-
-    const body = {
-        account_id: state.accountId,
-        symbol: state.currentQuote.symbol,
-        market: state.currentQuote.market,
-        direction: state.direction,
-        qty: qty,
-    };
-    if (state.mode === 'backtest') {
-        body.date = state.backtestDate;
-        body.price = state.currentQuote.close || state.currentQuote.price;
-    }
-
     try {
-        await api('/trade/open', { method: 'POST', body: JSON.stringify(body) });
-        showToast('开仓成功');
-        document.getElementById('tradeQty').value = '';
-        await refreshAll();
-    } catch (e) {
-        showToast('开仓失败: ' + e.message, 'error');
-    }
+        await api('/trade/open',{method:'POST',body:JSON.stringify(body)});
+        toast('开仓成功');
+        document.getElementById('tQty').value='';
+        refresh();
+    } catch(e) { toast('开仓失败: '+e.message,'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  平仓
-// ═══════════════════════════════════════════════════════════
-function showCloseConfirm(posId, symbol, market, direction, openPrice, currentPrice, qty) {
-    state.closePositionId = posId;
-    const dirText = direction === 'long' ? '做多' : '做空';
-    const pnl = (direction === 'long' ? currentPrice - openPrice : openPrice - currentPrice) * qty;
-    document.getElementById('closeInfo').innerHTML = `
-        <b>${symbol}</b> &nbsp;${market} &nbsp;${dirText}<br>
-        开仓价 ¥${fmt(openPrice)} &times; ${qty} 股<br>
-        现价 ¥${fmt(currentPrice)}<br>
-        预估盈亏 <b class="${pnlClass(pnl)}">¥${fmt(pnl)}</b>
-    `;
+// ── close ──
+function showClose(posId,sym,mkt,dir,openP,curP,qty,lever){
+    S.closeId=posId;
+    const dirT=dir==='long'?'做多':'做空';
+    const pnl=(dir==='long'?curP-openP:openP-curP)*qty*(lever||1);
+    document.getElementById('closeInfo').innerHTML=`<b>${sym}</b> ${mkt} ${dirT} ${lever||1}倍<br>开仓 ¥${fmt(openP)} &times; ${qty}股<br>现价 ¥${fmt(curP)}<br>预估盈亏 <b class="${pc(pnl)}">¥${fmt(pnl)}</b>`;
+    document.getElementById('sellDate').value='';
     showModal('closeModal');
 }
-
-async function executeClose() {
-    if (!state.closePositionId) return;
-    const body = { position_id: state.closePositionId };
-    if (state.mode === 'backtest') body.date = state.backtestDate;
+async function doClose(){
+    if(!S.closeId) return;
+    const sellDate=document.getElementById('sellDate').value;
+    const body={position_id:S.closeId};
+    if(S.mode==='backtest') body.date=sellDate||S.btDate;
+    else if(sellDate) body.date=sellDate;
     try {
-        await api('/trade/close', { method: 'POST', body: JSON.stringify(body) });
-        closeModal('closeModal');
-        showToast('平仓成功');
-        await refreshAll();
-    } catch (e) {
-        showToast('平仓失败: ' + e.message, 'error');
-    }
+        await api('/trade/close',{method:'POST',body:JSON.stringify(body)});
+        closeModal('closeModal'); toast('平仓成功'); refresh();
+    } catch(e) { toast('平仓失败: '+e.message,'error'); }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  刷新
-// ═══════════════════════════════════════════════════════════
-async function refreshAll() {
-    if (!state.accountId) return;
+// ── refresh ──
+async function refresh() {
+    if(!S.id) return;
     try {
-        const dateParam = state.mode === 'backtest' && state.backtestDate ? `?date=${state.backtestDate}` : '';
-        const summary = await api(`/positions/${state.accountId}${dateParam}`);
-        renderSummary(summary);
-        renderPositions(summary.positions || []);
-        await renderChart();
-    } catch (e) {
-        console.error('refresh error:', e);
-    }
+        const dp=S.mode==='backtest'&&S.btDate?`?date=${S.btDate}`:'';
+        const s=await api(`/positions/${S.id}${dp}`);
+        renderSum(s); renderPos(s.positions||[]); renderChart();
+    } catch(e) { console.error(e); }
 }
-
-function renderSummary(s) {
-    const ta = document.getElementById('totalAssets');
-    ta.textContent = `¥${fmt(s.total_assets)}`;
-    ta.className = `summary-value ${pnlClass(s.total_pnl)}`;
-    document.getElementById('cashValue').textContent = `¥${fmt(s.cash)}`;
-    document.getElementById('posValue').textContent = `¥${fmt(s.position_value)}`;
-    const pnlEl = document.getElementById('totalPnl');
-    pnlEl.textContent = `¥${fmt(s.total_pnl)}  (${fmt(s.total_pnl_pct)}%)`;
-    pnlEl.className = `summary-value ${pnlClass(s.total_pnl)}`;
+function renderSum(s){
+    const ta=document.getElementById('sTotal'); ta.textContent='¥'+fmt(s.total_assets); ta.className='sv '+pc(s.total_pnl);
+    document.getElementById('sCash').textContent='¥'+fmt(s.cash);
+    document.getElementById('sPos').textContent='¥'+fmt(s.position_value);
+    const pe=document.getElementById('sPnl'); pe.textContent=`¥${fmt(s.total_pnl)} (${fmt(s.total_pnl_pct)}%)`; pe.className='sv '+pc(s.total_pnl);
 }
-
-function renderPositions(positions) {
-    const tbody = document.getElementById('positionsBody');
-    const noPos = document.getElementById('noPositions');
-
-    if (!positions || positions.length === 0) {
-        tbody.innerHTML = '';
-        noPos.style.display = '';
-        return;
-    }
-    noPos.style.display = 'none';
-
-    tbody.innerHTML = positions.map(p => {
-        const dirBadge = p.direction === 'long'
-            ? '<span class="badge badge-long">多</span>'
-            : '<span class="badge badge-short">空</span>';
-        const ml = { A: 'A股', HK: '港股', US: '美股' }[p.market] || p.market;
+function renderPos(ps){
+    const tb=document.getElementById('posBody'); const np=document.getElementById('noPos');
+    if(!ps||!ps.length){ tb.innerHTML=''; np.style.display=''; return; }
+    np.style.display='none';
+    tb.innerHTML=ps.map(p=>{
+        const db=p.direction==='long'?'<span class="badge badge-long">多</span>':'<span class="badge badge-short">空</span>';
+        const ml={A:'A股',HK:'港股',US:'美股'}[p.market]||p.market;
+        const lev=p.multiplier||1;
         return `<tr>
-            <td class="pos-symbol">${p.symbol}</td>
+            <td style="font-weight:600">${p.symbol}</td>
             <td style="color:var(--text-secondary)">${ml}</td>
-            <td>${dirBadge}</td>
+            <td>${db}</td>
+            <td>${lev}x</td>
             <td style="color:var(--text-secondary)">${p.open_date}</td>
             <td>¥${fmt(p.open_price)}</td>
             <td>¥${fmt(p.current_price)}</td>
-            <td class="${pnlClass(p.pnl)}">¥${fmt(p.pnl)}</td>
-            <td class="${pnlClass(p.pnl)}">${fmt(p.pnl_pct)}%</td>
-            <td><button class="close-btn" onclick="showCloseConfirm(${p.id},'${p.symbol}','${p.market}','${p.direction}',${p.open_price},${p.current_price},${p.qty})">平仓</button></td>
+            <td class="${pc(p.pnl)}">¥${fmt(p.pnl)}</td>
+            <td class="${pc(p.pnl)}">${fmt(p.pnl_pct)}%</td>
+            <td><button class="close-btn" onclick="showClose(${p.id},'${p.symbol}','${p.market}','${p.direction}',${p.open_price},${p.current_price},${p.qty},${lev})">平仓</button></td>
         </tr>`;
     }).join('');
 }
 
-// ═══════════════════════════════════════════════════════════
-//  图表
-// ═══════════════════════════════════════════════════════════
-async function renderChart() {
-    if (!state.accountId) return;
+// ── chart ──
+async function renderChart(){
+    if(!S.id) return;
     try {
-        const data = await api(`/snapshot/${state.accountId}`);
-        const snapshots = data.snapshots || [];
-        const labels = snapshots.map(s => s.date);
-        const values = snapshots.map(s => s.total_assets);
-        const pnls = snapshots.map(s => s.daily_pnl);
-        const ctx = document.getElementById('assetChart').getContext('2d');
-        if (state.chart) state.chart.destroy();
-
-        const gradient = ctx.createLinearGradient(0, 0, 0, 220);
-        gradient.addColorStop(0, 'rgba(41, 151, 255, 0.15)');
-        gradient.addColorStop(1, 'rgba(41, 151, 255, 0.0)');
-
-        state.chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    {
-                        label: '总资产',
-                        data: values,
-                        borderColor: '#2997ff',
-                        backgroundColor: gradient,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: values.length > 60 ? 0 : 3,
-                        pointBackgroundColor: '#2997ff',
-                        pointBorderColor: '#000',
-                        pointBorderWidth: 1.5,
-                        pointHoverRadius: 5,
-                        borderWidth: 2,
-                    },
-                    {
-                        label: '每日盈亏',
-                        data: pnls,
-                        borderColor: 'rgba(255, 214, 10, 0.6)',
-                        backgroundColor: 'rgba(255, 214, 10, 0.05)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 0,
-                        borderWidth: 1.5,
-                        borderDash: [4, 4],
-                        yAxisID: 'y1',
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { intersect: false, mode: 'index' },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(28, 28, 30, 0.9)',
-                        titleColor: '#f5f5f7',
-                        bodyColor: 'rgba(245,245,247,0.7)',
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        borderWidth: 0.5,
-                        cornerRadius: 8,
-                        padding: 10,
-                        bodyFont: { size: 13 },
-                        callbacks: {
-                            label: ctx => `  ${ctx.dataset.label}: ¥${fmt(ctx.parsed.y)}`
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: 'rgba(245,245,247,0.3)', font: { size: 11 }, maxRotation: 0 },
-                        grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false },
-                        border: { display: false }
-                    },
-                    y: {
-                        position: 'left',
-                        ticks: { color: 'rgba(245,245,247,0.3)', font: { size: 11 }, callback: v => '¥' + (v/10000).toFixed(0) + 'w' },
-                        grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false },
-                        border: { display: false }
-                    },
-                    y1: {
-                        position: 'right',
-                        ticks: { color: 'rgba(255,214,10,0.3)', font: { size: 11 } },
-                        grid: { display: false },
-                        border: { display: false }
-                    },
-                }
-            }
-        });
-    } catch (e) {
-        console.error('chart error:', e);
-    }
+        const d=await api(`/snapshot/${S.id}`);
+        const ss=d.snapshots||[];
+        const labels=ss.map(s=>s.date); const vals=ss.map(s=>s.total_assets); const pnls=ss.map(s=>s.daily_pnl);
+        const ctx=document.getElementById('assetChart').getContext('2d');
+        if(S.chart) S.chart.destroy();
+        const grad=ctx.createLinearGradient(0,0,0,220);
+        grad.addColorStop(0,'rgba(41,151,255,.15)'); grad.addColorStop(1,'rgba(41,151,255,0)');
+        S.chart=new Chart(ctx,{type:'line',data:{labels,datasets:[
+            {label:'总资产',data:vals,borderColor:'#2997ff',backgroundColor:grad,fill:true,tension:.4,pointRadius:vals.length>60?0:3,pointBackgroundColor:'#2997ff',pointBorderColor:'#000',pointBorderWidth:1.5,borderWidth:2},
+            {label:'每日盈亏',data:pnls,borderColor:'rgba(255,214,10,.6)',backgroundColor:'rgba(255,214,10,.05)',fill:true,tension:.4,pointRadius:0,borderWidth:1.5,borderDash:[4,4],yAxisID:'y1'}
+        ]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(28,28,30,.9)',titleColor:'#f5f5f7',bodyColor:'rgba(245,245,247,.7)',borderColor:'rgba(255,255,255,.1)',borderWidth:.5,cornerRadius:8,padding:10,callbacks:{label:c=>`  ${c.dataset.label}: ¥${fmt(c.parsed.y)}`}},scales:{x:{ticks:{color:'rgba(245,245,247,.3)',font:{size:11},maxRotation:0},grid:{color:'rgba(255,255,255,.03)',drawBorder:false},border:{display:false}},y:{position:'left',ticks:{color:'rgba(245,245,247,.3)',font:{size:11},callback:v=>'¥'+(v/10000).toFixed(0)+'w'},grid:{color:'rgba(255,255,255,.03)',drawBorder:false},border:{display:false}},y1:{position:'right',ticks:{color:'rgba(255,214,10,.3)',font:{size:11}},grid:{display:false},border:{display:false}}}}});
+    } catch(e) { console.error(e); }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  自动刷新
-// ═══════════════════════════════════════════════════════════
-function startAutoRefresh() {
-    if (state.refreshTimer) clearInterval(state.refreshTimer);
-    if (state.mode === 'live') {
-        state.refreshTimer = setInterval(refreshAll, 60000);
-    }
-}
+// ── auto refresh ──
+function startAuto(){ if(S.timer)clearInterval(S.timer); if(S.mode==='live') S.timer=setInterval(refresh,60000); }
 
-// ═══════════════════════════════════════════════════════════
-//  初始化
-// ═══════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-    loadAccounts();
-});
+// ── init ──
+document.addEventListener('DOMContentLoaded',()=>{ loadAccounts(); });
 </script>
 </body>
 </html>
