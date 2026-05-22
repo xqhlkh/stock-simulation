@@ -58,10 +58,11 @@ def _check_t1_rule(position: dict, current_date: str) -> bool:
 
 async def open_position(account_id: int, symbol: str, market: str,
                         direction: str, qty: float, date: str,
-                        price: float = None) -> dict:
+                        price: float = None, multiplier: float = 1.0) -> dict:
     """
     开仓
     price: 回测模式下指定价格，实时模式下为 None（取当前价）
+    multiplier: 杠杆倍数
     """
     # 1. 检查账户
     account = await db.get_account(account_id)
@@ -84,11 +85,10 @@ async def open_position(account_id: int, symbol: str, market: str,
     elif market == "US":
         cny_rate = await df.fetch_exchange_rate("USD", "CNY", date)
 
-    # 4. 计算所需资金
-    position_value_cny = price * qty * cny_rate
+    # 4. 计算所需资金（考虑倍数）
+    position_value_cny = price * qty * cny_rate * multiplier
 
     if direction == "long":
-        # 做多：需要全额资金
         required = position_value_cny
         if account["cash"] < required:
             return {
@@ -96,7 +96,6 @@ async def open_position(account_id: int, symbol: str, market: str,
                 "error": f"资金不足，需要 ¥{required:.2f}，可用 ¥{account['cash']:.2f}"
             }
     else:
-        # 做空：冻结保证金
         required = position_value_cny * MARGIN_RATIO
         if account["cash"] < required:
             return {
@@ -107,21 +106,17 @@ async def open_position(account_id: int, symbol: str, market: str,
     # 5. A股涨跌停检查
     if market == "A":
         limit = _get_limit_pct(symbol)
-        # 获取前一日收盘价
         prev_close = None
         if date and date != datetime.now().strftime("%Y-%m-%d"):
-            # 回测模式：从缓存获取前一日收盘价
             prev_date = await df.get_prev_trading_day(symbol, market, date)
             if prev_date:
                 prev_data = await df.fetch_price_on_date(symbol, market, prev_date)
                 if prev_data:
                     prev_close = prev_data["close"]
         else:
-            # 实时模式
             quote = await df.fetch_realtime_quote(symbol, market)
             if quote:
                 prev_close = quote.get("prev_close")
-
         if prev_close and prev_close > 0:
             upper = prev_close * (1 + limit)
             lower = prev_close * (1 - limit)
