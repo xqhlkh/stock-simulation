@@ -39,6 +39,7 @@ async def init_db():
             market TEXT NOT NULL CHECK(market IN ('A','HK','US')),
             direction TEXT NOT NULL CHECK(direction IN ('long','short')),
             qty REAL NOT NULL,
+            multiplier REAL NOT NULL DEFAULT 1,
             open_price REAL NOT NULL,
             open_date TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed')),
