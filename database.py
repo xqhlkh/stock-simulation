@@ -72,6 +72,14 @@ async def init_db():
         );
     """)
     await db.commit()
+
+    # 兼容旧数据库：添加 multiplier 列
+    try:
+        await db.execute("ALTER TABLE positions ADD COLUMN multiplier REAL NOT NULL DEFAULT 1")
+        await db.commit()
+    except Exception:
+        pass  # 列已存在
+
     await db.close()
 
 
