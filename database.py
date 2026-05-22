@@ -90,7 +90,7 @@ async def create_account(name: str, mode: str, init_cash: float) -> dict:
     return dict(row[0])
 
 
-async def get_accounts() -> list[dict]:
+async def get_accounts() -> List[dict]:
     db = await get_db()
     rows = await db.execute_fetchall("SELECT * FROM accounts ORDER BY id")
     await db.close()
@@ -151,7 +151,7 @@ async def close_position(position_id: int, close_price: float, close_date: str) 
     return dict(rows[0]) if rows else None
 
 
-async def get_open_positions(account_id: int) -> list[dict]:
+async def get_open_positions(account_id: int) -> List[dict]:
     db = await get_db()
     rows = await db.execute_fetchall(
         "SELECT * FROM positions WHERE account_id=? AND status='open' ORDER BY id",
@@ -161,7 +161,7 @@ async def get_open_positions(account_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-async def get_closed_positions(account_id: int) -> list[dict]:
+async def get_closed_positions(account_id: int) -> List[dict]:
     db = await get_db()
     rows = await db.execute_fetchall(
         "SELECT * FROM positions WHERE account_id=? AND status='closed' ORDER BY close_date DESC",
@@ -180,7 +180,7 @@ async def get_position(position_id: int) -> Optional[dict]:
 
 # ─── 价格缓存 ─────────────────────────────────────────────
 
-async def get_cached_prices(symbol: str, market: str) -> list[dict]:
+async def get_cached_prices(symbol: str, market: str) -> List[dict]:
     """获取已缓存的历史价格"""
     db = await get_db()
     rows = await db.execute_fetchall(
@@ -191,7 +191,7 @@ async def get_cached_prices(symbol: str, market: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-async def cache_prices(symbol: str, market: str, prices: list[dict]):
+async def cache_prices(symbol: str, market: str, prices: List[dict]):
     """批量写入历史价格（去重）"""
     if not prices:
         return
@@ -218,7 +218,7 @@ async def get_cached_price_on_date(symbol: str, market: str, date: str) -> Optio
     return dict(rows[0]) if rows else None
 
 
-async def get_trading_dates(symbol: str, market: str) -> list[str]:
+async def get_trading_dates(symbol: str, market: str) -> List[str]:
     """获取某股票所有已缓存的交易日（用于回测日历）"""
     db = await get_db()
     rows = await db.execute_fetchall(
@@ -244,7 +244,7 @@ async def save_snapshot(account_id: int, date: str, total_assets: float,
     await db.close()
 
 
-async def get_snapshots(account_id: int) -> list[dict]:
+async def get_snapshots(account_id: int) -> List[dict]:
     db = await get_db()
     rows = await db.execute_fetchall(
         "SELECT * FROM daily_snapshots WHERE account_id=? ORDER BY date",
