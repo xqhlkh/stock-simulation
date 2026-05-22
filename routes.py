@@ -25,6 +25,7 @@ class OpenPositionRequest(BaseModel):
     market: str  # "A" | "HK" | "US"
     direction: str  # "long" | "short"
     qty: float
+    multiplier: float = 1.0  # 杠杆倍数
     date: Optional[str] = None  # 回测模式需要
     price: Optional[float] = None  # 回测模式需要
 
