@@ -1,6 +1,6 @@
-fastapi==0.115.0
-uvicorn==0.30.0
-akshare==1.16.37
-aiosqlite==0.20.0
-pandas==2.2.3
-pydantic==2.9.0
+fastapi
+uvicorn
+akshare
+aiosqlite
+pandas
+pydantic
