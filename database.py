@@ -97,7 +97,7 @@ async def get_accounts() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-async def get_account(account_id: int) -> dict | None:
+async def get_account(account_id: int) -> Optional[dict]:
     db = await get_db()
     rows = await db.execute_fetchall("SELECT * FROM accounts WHERE id = ?", (account_id,))
     await db.close()
@@ -138,7 +138,7 @@ async def create_position(account_id: int, symbol: str, market: str,
     return dict(rows[0])
 
 
-async def close_position(position_id: int, close_price: float, close_date: str) -> dict | None:
+async def close_position(position_id: int, close_price: float, close_date: str) -> Optional[dict]:
     db = await get_db()
     await db.execute(
         """UPDATE positions SET status='closed', close_price=?, close_date=?
@@ -171,7 +171,7 @@ async def get_closed_positions(account_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-async def get_position(position_id: int) -> dict | None:
+async def get_position(position_id: int) -> Optional[dict]:
     db = await get_db()
     rows = await db.execute_fetchall("SELECT * FROM positions WHERE id = ?", (position_id,))
     await db.close()
@@ -207,7 +207,7 @@ async def cache_prices(symbol: str, market: str, prices: list[dict]):
     await db.close()
 
 
-async def get_cached_price_on_date(symbol: str, market: str, date: str) -> dict | None:
+async def get_cached_price_on_date(symbol: str, market: str, date: str) -> Optional[dict]:
     """获取某天的缓存价格"""
     db = await get_db()
     rows = await db.execute_fetchall(
