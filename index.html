@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模拟炒股系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f1117; --panel: #1a1d27; --border: #2a2d3a;
+            --text: #e1e4ea; --text-dim: #8b8fa3; --accent: #4f8cff;
+            --green: #00c853; --red: #ff3d3d; --yellow: #ffc107;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        a { color: var(--accent); text-decoration: none; }
+
+        /* ─── 顶部导航 ─── */
+        .navbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .navbar .logo { font-size: 18px; font-weight: 700; color: var(--accent); margin-right: 16px; }
+        .navbar select, .navbar input { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 14px; }
+        .navbar select:focus, .navbar input:focus { outline: none; border-color: var(--accent); }
+        .btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: opacity .2s; }
+        .btn:hover { opacity: .85; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-danger { background: var(--red); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .mode-tabs { display: flex; gap: 4px; margin-left: auto; }
+        .mode-tab { padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; background: var(--bg); border: 1px solid var(--border); color: var(--text-dim); transition: all .2s; }
+        .mode-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .backtest-ctrl { display: none; align-items: center; gap: 8px; }
+        .backtest-ctrl.visible { display: flex; }
+        .backtest-ctrl span { font-size: 14px; font-weight: 600; min-width: 110px; text-align: center; }
+        .nav-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+        /* ─── 主体布局 ─── */
+        .main { display: grid; grid-template-columns: 380px 1fr; gap: 16px; padding: 16px; max-width: 1600px; margin: 0 auto; }
+        @media (max-width: 900px) { .main { grid-template-columns: 1fr; } }
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+        .panel h3 { font-size: 14px; color: var(--text-dim); margin-bottom: 12px; text-transform: uppercase; letter-spacing: .5px; }
+
+        /* ─── 行情面板 ─── */
+        .quote-form { display: flex; gap: 8px; margin-bottom: 12px; }
+        .quote-form input, .quote-form select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 14px; }
+        .quote-form input { flex: 1; }
+        .quote-info { margin-bottom: 16px; }
+        .quote-info .name { font-size: 18px; font-weight: 700; }
+        .quote-info .price { font-size: 28px; font-weight: 700; margin: 4px 0; }
+        .quote-info .change { font-size: 15px; }
+        .quote-info .meta { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+        .quote-info .meta span { margin-right: 16px; }
+        .up { color: var(--red); }
+        .down { color: var(--green); }
+        .flat { color: var(--text-dim); }
+
+        /* ─── 开仓表单 ─── */
+        .trade-form { margin-top: 12px; }
+        .trade-form .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .trade-form label { font-size: 13px; color: var(--text-dim); min-width: 60px; }
+        .trade-form input, .trade-form select { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 14px; flex: 1; }
+        .dir-btns { display: flex; gap: 6px; }
+        .dir-btn { flex: 1; padding: 8px; border-radius: 6px; border: 2px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; transition: all .2s; }
+        .dir-btn.long.active { border-color: var(--red); color: var(--red); background: rgba(255,61,61,.1); }
+        .dir-btn.short.active { border-color: var(--green); color: var(--green); background: rgba(0,200,83,.1); }
+        .trade-summary { font-size: 12px; color: var(--text-dim); margin: 8px 0; padding: 8px; background: var(--bg); border-radius: 6px; }
+
+        /* ─── 持仓表格 ─── */
+        .positions-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .positions-table th { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); color: var(--text-dim); font-weight: 600; }
+        .positions-table td { padding: 8px 6px; border-bottom: 1px solid rgba(42,45,58,.5); }
+        .positions-table tr:hover td { background: rgba(79,140,255,.05); }
+
+        /* ─── 账户汇总 ─── */
+        .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+        .summary-card { background: var(--bg); border-radius: 8px; padding: 12px; text-align: center; }
+        .summary-card .label { font-size: 12px; color: var(--text-dim); }
+        .summary-card .value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+
+        /* ─── 资产曲线 ─── */
+        .chart-container { height: 250px; position: relative; }
+
+        /* ─── 模态框 ─── */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 400px; max-width: 90vw; }
+        .modal h3 { margin-bottom: 16px; font-size: 18px; }
+        .modal .form-group { margin-bottom: 12px; }
+        .modal label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 4px; }
+        .modal input, .modal select { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 14px; }
+        .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .modal .btn-cancel { background: var(--border); color: var(--text); }
+
+        /* ─── Toast ─── */
+        .toast { position: fixed; top: 20px; right: 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; z-index: 2000; animation: slideIn .3s ease; }
+        .toast.success { border-left: 3px solid var(--green); }
+        .toast.error { border-left: 3px solid var(--red); }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* ─── 提示 ─── */
+        .no-account { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+        .no-account p { margin: 8px 0; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-long { background: rgba(255,61,61,.15); color: var(--red); }
+        .badge-short { background: rgba(0,200,83,.15); color: var(--green); }
+        .badge-live { background: rgba(79,140,255,.15); color: var(--accent); }
+        .badge-backtest { background: rgba(255,193,7,.15); color: var(--yellow); }
+    </style>
+</head>
+<body>
+
+<!-- ═══ 导航栏 ═══ -->
+<div class="navbar">
+    <span class="logo">📈 模拟炒股</span>
+    <select id="accountSelect">
+        <option value="">-- 选择账户 --</option>
+    </select>
+    <button class="btn btn-sm" onclick="showCreateAccount()">+ 新建</button>
+    <button class="btn btn-sm btn-danger" onclick="deleteCurrentAccount()">删除</button>
+
+    <div class="mode-tabs">
+        <div class="mode-tab active" data-mode="live" onclick="switchMode('live')">实时模拟盘</div>
+        <div class="mode-tab" data-mode="backtest" onclick="switchMode('backtest')">历史回测</div>
+    </div>
+
+    <div class="backtest-ctrl" id="backtestCtrl">
+        <button class="btn btn-sm btn-outline" onclick="backtestPrev()">&laquo; 前一天</button>
+        <span id="backtestDate">--</span>
+        <button class="btn btn-sm btn-outline" onclick="backtestNext()">后一天 &raquo;</button>
+        <input type="date" id="backtestJump" style="width:140px" onchange="backtestJumpToDate(this.value)">
+        <button class="btn btn-sm" onclick="backtestJumpToDate(document.getElementById('backtestJump').value)">跳转</button>
+    </div>
+</div>
+
+<!-- ═══ 主体 ═══ -->
+<div class="main" id="mainArea">
+    <!-- 无账户提示 -->
+    <div class="no-account" id="noAccount" style="grid-column:1/-1;">
+        <p style="font-size:20px;margin-bottom:12px;">👋 欢迎使用模拟炒股系统</p>
+        <p>请点击左上角「+ 新建」创建一个交易账户开始体验</p>
+    </div>
+</div>
+
+<!-- ═══ 左栏 + 右栏（选中账户后显示） ═══ -->
+<div class="main" id="dashboardArea" style="display:none;">
+    <!-- 左栏：行情 + 开仓 -->
+    <div>
+        <div class="panel" style="margin-bottom:16px;">
+            <h3>行情查询</h3>
+            <div class="quote-form">
+                <input type="text" id="quoteSymbol" placeholder="股票代码，如 000001" onkeydown="if(event.key==='Enter')queryQuote()">
+                <select id="quoteMarket">
+                    <option value="A">A股</option>
+                    <option value="HK">港股</option>
+                    <option value="US">美股</option>
+                </select>
+                <button class="btn" onclick="queryQuote()">查询</button>
+            </div>
+            <div id="quoteResult" class="quote-info" style="display:none;">
+                <div class="name" id="qName"></div>
+                <div class="price" id="qPrice"></div>
+                <div class="change" id="qChange"></div>
+                <div class="meta" id="qMeta"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>开仓</h3>
+            <div class="trade-form">
+                <div class="row">
+                    <label>方向</label>
+                    <div class="dir-btns">
+                        <div class="dir-btn long active" id="dirLong" onclick="setDirection('long')">做多 ↑</div>
+                        <div class="dir-btn short" id="dirShort" onclick="setDirection('short')">做空 ↓</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <label>数量</label>
+                    <input type="number" id="tradeQty" min="1" step="1" placeholder="输入数量" oninput="updateTradePreview()">
+                </div>
+                <div class="trade-summary" id="tradePreview">请先查询行情</div>
+                <button class="btn" style="width:100%;margin-top:8px;" onclick="confirmOpen()">确认开仓</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右栏：持仓 -->
+    <div>
+        <div class="panel" style="margin-bottom:16px;">
+            <h3>持仓列表</h3>
+            <table class="positions-table" id="positionsTable">
+                <thead>
+                    <tr>
+                        <th>股票</th><th>市场</th><th>方向</th><th>开仓日</th>
+                        <th>开仓价</th><th>现价</th><th>盈亏</th><th>盈亏%</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="positionsBody">
+                </tbody>
+            </table>
+            <div id="noPositions" style="text-align:center;padding:30px;color:var(--text-dim);">暂无持仓</div>
+        </div>
+
+        <div class="panel" style="margin-bottom:16px;">
+            <h3>账户汇总</h3>
+            <div class="summary-row">
+                <div class="summary-card">
+                    <div class="label">总资产 (CNY)</div>
+                    <div class="value" id="totalAssets">--</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">可用资金</div>
+                    <div class="value" id="cashValue">--</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">持仓市值</div>
+                    <div class="value" id="posValue">--</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">总盈亏</div>
+                    <div class="value" id="totalPnl">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>资产曲线</h3>
+            <div class="chart-container">
+                <canvas id="assetChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ 新建账户模态框 ═══ -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal">
+        <h3>新建账户</h3>
+        <div class="form-group">
+            <label>账户名称</label>
+            <input type="text" id="newName" placeholder="如：我的模拟盘">
+        </div>
+        <div class="form-group">
+            <label>模式</label>
+            <select id="newMode">
+                <option value="live">实时模拟盘</option>
+                <option value="backtest">历史回测</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>初始资金 (CNY)</label>
+            <input type="number" id="newCash" value="100000" min="1000" step="1000">
+        </div>
+        <div class="actions">
+            <button class="btn btn-cancel" onclick="closeModal('createModal')">取消</button>
+            <button class="btn" onclick="createAccount()">创建</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ 平仓确认模态框 ═══ -->
+<div class="modal-overlay" id="closeModal">
+    <div class="modal">
+        <h3>确认平仓</h3>
+        <div id="closeInfo" style="margin-bottom:16px;font-size:14px;line-height:1.8;"></div>
+        <div class="actions">
+            <button class="btn btn-cancel" onclick="closeModal('closeModal')">取消</button>
+            <button class="btn btn-danger" id="confirmCloseBtn" onclick="executeClose()">确认平仓</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Toast ═══ -->
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  全局状态
+// ═══════════════════════════════════════════════════════════
+const API = '';
+let state = {
+    accounts: [],
+    accountId: null,
+    mode: 'live',
+    backtestDate: null,
+    currentQuote: null,
+    direction: 'long',
+    closePositionId: null,
+    chart: null,
+    refreshTimer: null,
+};
+
+// ═══════════════════════════════════════════════════════════
+//  工具函数
+// ═══════════════════════════════════════════════════════════
+async function api(path, opts = {}) {
+    const res = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts,
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || res.statusText);
+    }
+    return res.json();
+}
+
+function fmt(n, decimals = 2) {
+    if (n == null || isNaN(n)) return '--';
+    return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function pnlClass(val) {
+    if (val > 0) return 'up';
+    if (val < 0) return 'down';
+    return 'flat';
+}
+
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type}`;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function showEl(id, show) { document.getElementById(id).style.display = show ? '' : 'none'; }
+
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+// ═══════════════════════════════════════════════════════════
+//  账户管理
+// ═══════════════════════════════════════════════════════════
+async function loadAccounts() {
+    const data = await api('/accounts');
+    state.accounts = data.accounts;
+    const sel = document.getElementById('accountSelect');
+    sel.innerHTML = '<option value="">-- 选择账户 --</option>';
+    data.accounts.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        const modeTag = a.mode === 'live' ? ' [实时]' : ' [回测]';
+        opt.textContent = `${a.name}${modeTag} (¥${fmt(a.init_cash, 0)})`;
+        sel.appendChild(opt);
+    });
+    // 自动选择第一个或上次的
+    if (state.accountId && data.accounts.find(a => a.id === state.accountId)) {
+        sel.value = state.accountId;
+    } else if (data.accounts.length > 0) {
+        sel.value = data.accounts[0].id;
+        state.accountId = data.accounts[0].id;
+    }
+    onAccountChange();
+}
+
+function showCreateAccount() { showModal('createModal'); }
+
+async function createAccount() {
+    const name = document.getElementById('newName').value.trim();
+    const mode = document.getElementById('newMode').value;
+    const cash = parseFloat(document.getElementById('newCash').value);
+    if (!name) return showToast('请输入账户名称', 'error');
+    if (cash < 1000) return showToast('初始资金至少1000', 'error');
+    await api('/accounts', { method: 'POST', body: JSON.stringify({ name, mode, init_cash: cash }) });
+    closeModal('createModal');
+    showToast('账户创建成功');
+    await loadAccounts();
+}
+
+async function deleteCurrentAccount() {
+    if (!state.accountId) return showToast('请先选择账户', 'error');
+    if (!confirm('确定删除该账户及其所有数据？')) return;
+    await api(`/accounts/${state.accountId}`, { method: 'DELETE' });
+    showToast('账户已删除');
+    state.accountId = null;
+    await loadAccounts();
+}
+
+document.getElementById('accountSelect').addEventListener('change', function() {
+    state.accountId = this.value ? parseInt(this.value) : null;
+    onAccountChange();
+});
+
+async function onAccountChange() {
+    const has = !!state.accountId;
+    showEl('noAccount', !has);
+    showEl('dashboardArea', has);
+    if (has) {
+        const acc = state.accounts.find(a => a.id === state.accountId);
+        if (acc) {
+            state.mode = acc.mode;
+            updateModeTabs();
+        }
+        if (state.mode === 'backtest' && !state.backtestDate) {
+            state.backtestDate = new Date().toISOString().slice(0, 10);
+        }
+        await refreshAll();
+        startAutoRefresh();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  模式切换
+// ═══════════════════════════════════════════════════════════
+function switchMode(mode) {
+    state.mode = mode;
+    updateModeTabs();
+    if (mode === 'backtest' && !state.backtestDate) {
+        state.backtestDate = new Date().toISOString().slice(0, 10);
+    }
+    refreshAll();
+}
+
+function updateModeTabs() {
+    document.querySelectorAll('.mode-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.mode === state.mode);
+    });
+    document.getElementById('backtestCtrl').classList.toggle('visible', state.mode === 'backtest');
+    document.getElementById('backtestDate').textContent = state.backtestDate || '--';
+    document.getElementById('backtestJump').value = state.backtestDate || '';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  回测导航
+// ═══════════════════════════════════════════════════════════
+async function backtestPrev() {
+    const symbol = document.getElementById('quoteSymbol').value || '000001';
+    const market = document.getElementById('quoteMarket').value;
+    try {
+        const data = await api(`/calendar/prev?date=${state.backtestDate}&market=${market}&symbol=${symbol}`);
+        if (data.date) {
+            state.backtestDate = data.date;
+            updateModeTabs();
+            refreshAll();
+        }
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function backtestNext() {
+    const symbol = document.getElementById('quoteSymbol').value || '000001';
+    const market = document.getElementById('quoteMarket').value;
+    try {
+        const data = await api(`/calendar/next?date=${state.backtestDate}&market=${market}&symbol=${symbol}`);
+        if (data.date) {
+            state.backtestDate = data.date;
+            updateModeTabs();
+            refreshAll();
+        }
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+function backtestJumpToDate(date) {
+    if (date) {
+        state.backtestDate = date;
+        updateModeTabs();
+        refreshAll();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  行情查询
+// ═══════════════════════════════════════════════════════════
+async function queryQuote() {
+    const symbol = document.getElementById('quoteSymbol').value.trim();
+    const market = document.getElementById('quoteMarket').value;
+    if (!symbol) return showToast('请输入股票代码', 'error');
+
+    try {
+        let url;
+        if (state.mode === 'backtest' && state.backtestDate) {
+            url = `/quote?symbol=${symbol}&market=${market}&date=${state.backtestDate}`;
+        } else {
+            url = `/quote?symbol=${symbol}&market=${market}`;
+        }
+        const q = await api(url);
+        state.currentQuote = { ...q, symbol, market };
+
+        showEl('quoteResult', true);
+        document.getElementById('qName').textContent = q.name || symbol;
+        const price = q.price || q.close;
+        document.getElementById('qPrice').textContent = `¥${fmt(price)}`;
+        document.getElementById('qPrice').className = `price ${pnlClass(q.change_pct || 0)}`;
+
+        const chg = q.change_pct || 0;
+        const chgAmt = q.change_amount || 0;
+        document.getElementById('qChange').textContent = `${chg >= 0 ? '+' : ''}${fmt(chg)}%  ${chgAmt >= 0 ? '+' : ''}${fmt(chgAmt)}`;
+        document.getElementById('qChange').className = `change ${pnlClass(chg)}`;
+
+        let meta = '';
+        if (q.open) meta += `<span>开盘 ${fmt(q.open)}</span>`;
+        if (q.high) meta += `<span>最高 ${fmt(q.high)}</span>`;
+        if (q.low) meta += `<span>最低 ${fmt(q.low)}</span>`;
+        if (q.prev_close) meta += `<span>昨收 ${fmt(q.prev_close)}</span>`;
+        if (state.mode === 'backtest') meta += `<span style="color:var(--yellow)">[回测 ${state.backtestDate}]</span>`;
+        document.getElementById('qMeta').innerHTML = meta;
+
+        updateTradePreview();
+    } catch (e) {
+        showToast('查询失败: ' + e.message, 'error');
+    }
+}
+
+function setDirection(dir) {
+    state.direction = dir;
+    document.getElementById('dirLong').classList.toggle('active', dir === 'long');
+    document.getElementById('dirShort').classList.toggle('active', dir === 'short');
+    updateTradePreview();
+}
+
+function updateTradePreview() {
+    const qty = parseFloat(document.getElementById('tradeQty').value) || 0;
+    const q = state.currentQuote;
+    const price = q ? (q.price || q.close) : 0;
+    const market = q ? q.market : 'A';
+    const preview = document.getElementById('tradePreview');
+
+    if (!q || !qty) { preview.innerHTML = '请先查询行情并输入数量'; return; }
+
+    let rate = 1;
+    if (market === 'HK') rate = 0.93;
+    else if (market === 'US') rate = 7.25;
+
+    const totalCost = price * qty * rate;
+    const dirText = state.direction === 'long' ? '做多' : '做空';
+
+    preview.innerHTML = `
+        ${dirText} <b>${q.symbol}</b> ${qty}股 × ¥${fmt(price)}<br>
+        所需资金: <b style="color:var(--accent)">¥${fmt(totalCost)}</b>
+        ${market !== 'A' ? `<span style="color:var(--text-dim);font-size:11px">(汇率≈${fmt(rate, 2)})</span>` : ''}
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  开仓
+// ═══════════════════════════════════════════════════════════
+async function confirmOpen() {
+    if (!state.accountId) return showToast('请先选择账户', 'error');
+    if (!state.currentQuote) return showToast('请先查询行情', 'error');
+    const qty = parseFloat(document.getElementById('tradeQty').value);
+    if (!qty || qty <= 0) return showToast('请输入有效数量', 'error');
+
+    const body = {
+        account_id: state.accountId,
+        symbol: state.currentQuote.symbol,
+        market: state.currentQuote.market,
+        direction: state.direction,
+        qty: qty,
+    };
+
+    if (state.mode === 'backtest') {
+        body.date = state.backtestDate;
+        body.price = state.currentQuote.close || state.currentQuote.price;
+    }
+
+    try {
+        await api('/trade/open', { method: 'POST', body: JSON.stringify(body) });
+        showToast('开仓成功');
+        document.getElementById('tradeQty').value = '';
+        await refreshAll();
+    } catch (e) {
+        showToast('开仓失败: ' + e.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  平仓
+// ═══════════════════════════════════════════════════════════
+function showCloseConfirm(posId, symbol, market, direction, openPrice, currentPrice, qty) {
+    state.closePositionId = posId;
+    const dirText = direction === 'long' ? '做多' : '做空';
+    document.getElementById('closeInfo').innerHTML = `
+        <b>${symbol}</b> (${market}) ${dirText}<br>
+        开仓价: ¥${fmt(openPrice)} × ${qty}股<br>
+        当前价: ¥${fmt(currentPrice)}<br>
+        预估盈亏: <b class="${pnlClass(direction === 'long' ? currentPrice - openPrice : openPrice - currentPrice)}">
+            ¥${fmt((direction === 'long' ? currentPrice - openPrice : openPrice - currentPrice) * qty)}
+        </b>
+    `;
+    showModal('closeModal');
+}
+
+async function executeClose() {
+    if (!state.closePositionId) return;
+    const body = { position_id: state.closePositionId };
+    if (state.mode === 'backtest') {
+        body.date = state.backtestDate;
+    }
+    try {
+        await api('/trade/close', { method: 'POST', body: JSON.stringify(body) });
+        closeModal('closeModal');
+        showToast('平仓成功');
+        await refreshAll();
+    } catch (e) {
+        showToast('平仓失败: ' + e.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  刷新数据
+// ═══════════════════════════════════════════════════════════
+async function refreshAll() {
+    if (!state.accountId) return;
+    try {
+        const dateParam = state.mode === 'backtest' && state.backtestDate ? `?date=${state.backtestDate}` : '';
+        const summary = await api(`/positions/${state.accountId}${dateParam}`);
+        renderSummary(summary);
+        renderPositions(summary.positions || []);
+        await renderChart();
+    } catch (e) {
+        console.error('refreshAll error:', e);
+    }
+}
+
+function renderSummary(s) {
+    document.getElementById('totalAssets').textContent = `¥${fmt(s.total_assets)}`;
+    document.getElementById('totalAssets').className = `value ${pnlClass(s.total_pnl)}`;
+    document.getElementById('cashValue').textContent = `¥${fmt(s.cash)}`;
+    document.getElementById('posValue').textContent = `¥${fmt(s.position_value)}`;
+    const pnlEl = document.getElementById('totalPnl');
+    pnlEl.textContent = `¥${fmt(s.total_pnl)} (${fmt(s.total_pnl_pct)}%)`;
+    pnlEl.className = `value ${pnlClass(s.total_pnl)}`;
+}
+
+function renderPositions(positions) {
+    const tbody = document.getElementById('positionsBody');
+    const noPos = document.getElementById('noPositions');
+
+    if (!positions || positions.length === 0) {
+        tbody.innerHTML = '';
+        noPos.style.display = '';
+        return;
+    }
+    noPos.style.display = 'none';
+
+    tbody.innerHTML = positions.map(p => {
+        const dirBadge = p.direction === 'long'
+            ? '<span class="badge badge-long">多</span>'
+            : '<span class="badge badge-short">空</span>';
+        const marketLabel = { A: 'A股', HK: '港股', US: '美股' }[p.market] || p.market;
+        return `<tr>
+            <td><b>${p.symbol}</b></td>
+            <td>${marketLabel}</td>
+            <td>${dirBadge}</td>
+            <td>${p.open_date}</td>
+            <td>¥${fmt(p.open_price)}</td>
+            <td>¥${fmt(p.current_price)}</td>
+            <td class="${pnlClass(p.pnl)}">¥${fmt(p.pnl)}</td>
+            <td class="${pnlClass(p.pnl)}">${fmt(p.pnl_pct)}%</td>
+            <td><button class="btn btn-sm btn-danger" onclick="showCloseConfirm(${p.id},'${p.symbol}','${p.market}','${p.direction}',${p.open_price},${p.current_price},${p.qty})">平仓</button></td>
+        </tr>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  资产曲线 (Chart.js)
+// ═══════════════════════════════════════════════════════════
+async function renderChart() {
+    if (!state.accountId) return;
+    try {
+        const data = await api(`/snapshot/${state.accountId}`);
+        const snapshots = data.snapshots || [];
+
+        const labels = snapshots.map(s => s.date);
+        const values = snapshots.map(s => s.total_assets);
+        const pnls = snapshots.map(s => s.daily_pnl);
+
+        const ctx = document.getElementById('assetChart').getContext('2d');
+
+        if (state.chart) state.chart.destroy();
+
+        state.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '总资产 (CNY)',
+                        data: values,
+                        borderColor: '#4f8cff',
+                        backgroundColor: 'rgba(79,140,255,.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: values.length > 50 ? 0 : 3,
+                        borderWidth: 2,
+                    },
+                    {
+                        label: '每日盈亏',
+                        data: pnls,
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255,193,7,.1)',
+                        tension: 0.3,
+                        pointRadius: pnls.length > 50 ? 0 : 2,
+                        borderWidth: 1,
+                        yAxisID: 'y1',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#8b8fa3', font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.dataset.label}: ¥${fmt(ctx.parsed.y)}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#8b8fa3', maxRotation: 45 }, grid: { color: 'rgba(42,45,58,.5)' } },
+                    y: { position: 'left', ticks: { color: '#8b8fa3' }, grid: { color: 'rgba(42,45,58,.5)' } },
+                    y1: { position: 'right', ticks: { color: '#ffc107' }, grid: { display: false } },
+                }
+            }
+        });
+    } catch (e) {
+        console.error('renderChart error:', e);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  自动刷新
+// ═══════════════════════════════════════════════════════════
+function startAutoRefresh() {
+    if (state.refreshTimer) clearInterval(state.refreshTimer);
+    if (state.mode === 'live') {
+        state.refreshTimer = setInterval(refreshAll, 60000);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  初始化
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    loadAccounts();
+});
+</script>
+</body>
+</html>
