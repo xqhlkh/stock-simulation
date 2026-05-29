@@ -365,8 +365,8 @@ async function deleteAccount() {
 document.getElementById('accountSelect').addEventListener('change',function(){ S.id=this.value?parseInt(this.value):null; onAccChange(); });
 async function onAccChange() {
     const has=!!S.id;
-    showEl('noAccount',!has); showEl('dashArea',has);
     document.getElementById('mainArea').style.display=has?'none':'';
+    document.getElementById('dashArea').style.display=has?'':'none';
     if(has){
         const a=S.accounts.find(x=>x.id===S.id);
         if(a){ S.mode=a.mode; updateMode(); }
@@ -543,7 +543,11 @@ function startAuto(){ if(S.timer)clearInterval(S.timer); if(S.mode==='live') S.t
 // ── init ──
 document.addEventListener('DOMContentLoaded',async()=>{
     try { await loadAccounts(); }
-    catch(e) { console.error('init error:',e); toast('初始化失败: '+e.message,'error'); }
+    catch(e) {
+        console.error('init error:',e);
+        document.getElementById('mainArea').style.display='';
+        document.getElementById('dashArea').style.display='none';
+    }
 });
 </script>
 </body>
