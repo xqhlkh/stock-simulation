@@ -247,8 +247,34 @@ async def calculate_position_value(position: dict, current_price: float,
 
 # ─── 账户汇总 ──────────────────────────────────────────────
 
+# 价格缓存，避免同一请求内重复查询同一股票
+_quote_cache = {}
+
+async def _get_price(symbol: str, market: str, date: str = None) -> float:
+    """获取价格，带内存缓存"""
+    cache_key = f"{symbol}_{market}_{date or 'now'}"
+    if cache_key in _quote_cache:
+        return _quote_cache[cache_key]
+
+    price = 0
+    if date:
+        price_data = await df.fetch_price_on_date(symbol, market, date)
+        if price_data:
+            price = price_data["close"]
+    else:
+        quote = await df.fetch_realtime_quote(symbol, market)
+        if quote:
+            price = quote["price"]
+
+    _quote_cache[cache_key] = price
+    return price
+
+
 async def get_account_summary(account_id: int, date: str = None) -> dict:
     """获取账户汇总：总资产、持仓市值、总盈亏"""
+    global _quote_cache
+    _quote_cache = {}  # 每次请求清空缓存
+
     account = await db.get_account(account_id)
     if not account:
         return None
@@ -258,13 +284,9 @@ async def get_account_summary(account_id: int, date: str = None) -> dict:
     position_details = []
 
     for pos in positions:
-        # 获取当前价格
-        if date:
-            price_data = await df.fetch_price_on_date(pos["symbol"], pos["market"], date)
-            current_price = price_data["close"] if price_data else pos["open_price"]
-        else:
-            quote = await df.fetch_realtime_quote(pos["symbol"], pos["market"])
-            current_price = quote["price"] if quote else pos["open_price"]
+        current_price = await _get_price(pos["symbol"], pos["market"], date)
+        if not current_price:
+            current_price = pos["open_price"]
 
         pnl = await calculate_position_pnl(pos, current_price, date)
         value = await calculate_position_value(pos, current_price, date)
