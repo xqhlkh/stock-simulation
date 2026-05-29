@@ -70,6 +70,7 @@ async def open_position(account_id: int, symbol: str, market: str,
         return {"success": False, "error": "账户不存在"}
 
     # 2. 获取价格
+    quote = None
     if price is None:
         quote = await df.fetch_realtime_quote(symbol, market)
         if not quote:
@@ -103,20 +104,18 @@ async def open_position(account_id: int, symbol: str, market: str,
                 "error": f"保证金不足，需要 ¥{required:.2f}，可用 ¥{account['cash']:.2f}"
             }
 
-    # 5. A股涨跌停检查
+    # 5. A股涨跌停检查（复用已有 quote，不再重复请求）
     if market == "A":
         limit = _get_limit_pct(symbol)
         prev_close = None
-        if date and date != datetime.now().strftime("%Y-%m-%d"):
+        if quote and quote.get("prev_close"):
+            prev_close = quote["prev_close"]
+        elif date:
             prev_date = await df.get_prev_trading_day(symbol, market, date)
             if prev_date:
                 prev_data = await df.fetch_price_on_date(symbol, market, prev_date)
                 if prev_data:
                     prev_close = prev_data["close"]
-        else:
-            quote = await df.fetch_realtime_quote(symbol, market)
-            if quote:
-                prev_close = quote.get("prev_close")
         if prev_close and prev_close > 0:
             upper = prev_close * (1 + limit)
             lower = prev_close * (1 - limit)
