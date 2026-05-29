@@ -539,7 +539,10 @@ async function renderChart(){
 function startAuto(){ if(S.timer)clearInterval(S.timer); if(S.mode==='live') S.timer=setInterval(refresh,60000); }
 
 // ── init ──
-document.addEventListener('DOMContentLoaded',()=>{ loadAccounts(); });
+document.addEventListener('DOMContentLoaded',async()=>{
+    try { await loadAccounts(); }
+    catch(e) { console.error('init error:',e); toast('初始化失败: '+e.message,'error'); }
+});
 </script>
 </body>
 </html>
