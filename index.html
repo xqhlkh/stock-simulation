@@ -351,8 +351,10 @@ async function createAccount() {
     const c=parseFloat(document.getElementById('newCash').value);
     if(!n) return toast('请输入名称','error');
     if(c<1000) return toast('资金至少1000','error');
-    await api('/accounts',{method:'POST',body:JSON.stringify({name:n,mode:m,init_cash:c})});
-    closeModal('createModal'); toast('账户已创建'); loadAccounts();
+    try {
+        await api('/accounts',{method:'POST',body:JSON.stringify({name:n,mode:m,init_cash:c})});
+        closeModal('createModal'); toast('账户已创建'); await loadAccounts();
+    } catch(e) { toast('创建失败: '+e.message,'error'); }
 }
 async function deleteAccount() {
     if(!S.id) return toast('请先选择','error');
