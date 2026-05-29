@@ -39,7 +39,15 @@ app.include_router(router)
 async def root():
     """返回前端页面"""
     html_path = os.path.join(os.path.dirname(__file__), "index.html")
-    return FileResponse(html_path, media_type="text/html")
+    return FileResponse(
+        html_path,
+        media_type="text/html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+    )
 
 
 # ─── 启动事件 ──────────────────────────────────────────────
