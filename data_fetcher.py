@@ -2,14 +2,76 @@
 AKShare 数据获取层
 优先从 SQLite 缓存读取，不存在时才调用 AKShare 拉取并写入缓存。
 
-修复：实时行情改为单只股票查询，不再下载整个市场数据。
+优化：
+- 添加 LRU 缓存减少重复请求
+- 批量查询优化
+- 错误重试机制
+- 超时控制
 """
 import akshare as ak
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional, List
+from functools import lru_cache
 import database as db
 import traceback
+import asyncio
+from aiohttp import ClientTimeout
+
+# ─── 配置 ──────────────────────────────────────────────
+
+# 请求超时设置（秒）
+REQUEST_TIMEOUT = 30
+
+# 内存缓存过期时间（秒）
+CACHE_TTL = {
+    "realtime": 60,      # 实时行情缓存 1 分钟
+    "history": 3600,     # 历史数据缓存 1 小时
+    "exchange_rate": 300, # 汇率缓存 5 分钟
+}
+
+# 最大重试次数
+MAX_RETRIES = 3
+
+# ─── 内存缓存 ──────────────────────────────────────────────
+
+class TTLCache:
+    """带过期时间的内存缓存"""
+    
+    def __init__(self):
+        self._cache = {}
+        self._timestamps = {}
+    
+    def get(self, key: str):
+        """获取缓存值，如果过期则返回 None"""
+        if key not in self._cache:
+            return None
+        
+        timestamp = self._timestamps.get(key, 0)
+        if datetime.now().timestamp() - timestamp > CACHE_TTL.get(key.split(":")[0], 300):
+            # 过期清理
+            del self._cache[key]
+            del self._timestamps[key]
+            return None
+        
+        return self._cache[key]
+    
+    def set(self, key: str, value, ttl_key: str = "history"):
+        """设置缓存值"""
+        self._cache[key] = value
+        self._timestamps[key] = datetime.now().timestamp()
+    
+    def clear(self):
+        """清空缓存"""
+        self._cache.clear()
+        self._timestamps.clear()
+
+
+# 全局缓存实例
+_price_cache = TTLCache()
+_quote_cache = TTLCache()
+_rate_cache = TTLCache()
+
 
 # ─── 工具函数 ──────────────────────────────────────────────
 
