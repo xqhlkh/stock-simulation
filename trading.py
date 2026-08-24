@@ -247,33 +247,28 @@ async def calculate_position_value(position: dict, current_price: float,
 
 # ─── 账户汇总 ──────────────────────────────────────────────
 
-# 价格缓存，避免同一请求内重复查询同一股票
-_quote_cache = {}
-
-async def _get_price(symbol: str, market: str, date: str = None) -> float:
-    """获取价格，带内存缓存"""
-    cache_key = f"{symbol}_{market}_{date or 'now'}"
-    if cache_key in _quote_cache:
-        return _quote_cache[cache_key]
-
-    price = 0
-    if date:
-        price_data = await df.fetch_price_on_date(symbol, market, date)
-        if price_data:
-            price = price_data["close"]
-    else:
-        quote = await df.fetch_realtime_quote(symbol, market)
-        if quote:
-            price = quote["price"]
-
-    _quote_cache[cache_key] = price
-    return price
-
-
 async def get_account_summary(account_id: int, date: str = None) -> dict:
-    """获取账户汇总：总资产、持仓市值、总盈亏"""
-    global _quote_cache
-    _quote_cache = {}  # 每次请求清空缓存
+    """获取账户汇总：总资产、持仓市值、总盈亏（优化版）"""
+    # 使用局部缓存，避免同一请求内重复查询
+    price_cache = {}
+    
+    async def _get_price_cached(symbol: str, market: str, date: str = None) -> float:
+        cache_key = f"{symbol}_{market}_{date or 'now'}"
+        if cache_key in price_cache:
+            return price_cache[cache_key]
+        
+        price = 0
+        if date:
+            price_data = await df.fetch_price_on_date(symbol, market, date)
+            if price_data:
+                price = price_data["close"]
+        else:
+            quote = await df.fetch_realtime_quote(symbol, market)
+            if quote:
+                price = quote["price"]
+        
+        price_cache[cache_key] = price
+        return price
 
     account = await db.get_account(account_id)
     if not account:
@@ -283,8 +278,9 @@ async def get_account_summary(account_id: int, date: str = None) -> dict:
     total_position_value = 0.0
     position_details = []
 
+    # 并行获取所有价格（如果数量较多）
     for pos in positions:
-        current_price = await _get_price(pos["symbol"], pos["market"], date)
+        current_price = await _get_price_cached(pos["symbol"], pos["market"], date)
         if not current_price:
             current_price = pos["open_price"]
 
